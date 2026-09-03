@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# testing
+coverage/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# local env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# supabase
+supabase/.temp
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# code intelligence index (local, regenerated)
+.codegraph/
+
+# downloaded skills (regenerated from skills-lock.json)
+.agents/
+
+# local machine config (override settings.json)
+.claude/settings.local.json
+
+# downloaded skills (regenerated from skills-lock.json)
+.claude/skills/
