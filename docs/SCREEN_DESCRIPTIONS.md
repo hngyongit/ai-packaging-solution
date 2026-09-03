@@ -4,7 +4,7 @@
 >
 > **Three Dials**: `VARIANCE: 5` (trust-first, offset layouts), `MOTION: 3` (minimal — static + scroll-reveal only), `DENSITY: 4` (balanced spacing, slightly airy for non-tech audience).
 >
-> **Tasteskill Source**: `.claude/skills/design-taste-frontend/SKILL.md`
+> **Tasteskill Source**: `.agents/skills/design-taste-frontend/SKILL.md`
 > **UI Implementation**: `docs/UI_RULES.md`
 
 ---

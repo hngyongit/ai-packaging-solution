@@ -1,6 +1,6 @@
 # UI Rules — Tasteskill Implementation Layer
 
-> **This file is the implementation layer for `.claude/skills/design-taste-frontend/SKILL.md`**
+> **This file is the implementation layer for `.agents/skills/design-taste-frontend/SKILL.md`**
 > The Tasteskill governs the **design direction** (what). This file provides the **concrete Tailwind tokens** (how).
 > **Always read the Tasteskill first, then use this file for exact classes.**
 

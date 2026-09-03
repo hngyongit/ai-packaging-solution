@@ -33,11 +33,11 @@ All docs live in `docs/`. Read the relevant one before coding in that area.
 
 ## 🎨 UI Generation — Single Source of Truth
 
-**`.claude/skills/design-taste-frontend/SKILL.md`** is the **Tasteskill** — the authoritative design taste system for this project.
+**`.agents/skills/design-taste-frontend/SKILL.md`** is the **Tasteskill** — the authoritative design taste system for this project.
 
 **Every time you generate, modify, or review any UI code, you MUST:**
 
-1. **Read the Tasteskill skill first** → `.claude/skills/design-taste-frontend/SKILL.md`
+1. **Read the Tasteskill skill first** → `.agents/skills/design-taste-frontend/SKILL.md`
 2. **Infer the design direction** using Section 0 (Brief Inference):
    - Declare a one-line **"Design Read"** before any code
    - Set the **Three Dials** (VARIANCE, MOTION, DENSITY) based on the brief
@@ -46,7 +46,7 @@ All docs live in `docs/`. Read the relevant one before coding in that area.
 
 ### How the two work together
 
-| Tasteskill (`.claude/skills/...`) | `docs/UI_RULES.md` |
+| Tasteskill (`.agents/skills/...`) | `docs/UI_RULES.md` |
 |---|---|
 | **Design direction** — brief inference, Design Read, Three Dials | **Implementation tokens** — concrete Tailwind classes, component templates |
 | Sets the aesthetic: "clean industrial", "premium consumer" | Maps to exact values: `blue-600`, `rounded-lg`, `text-sm` |
