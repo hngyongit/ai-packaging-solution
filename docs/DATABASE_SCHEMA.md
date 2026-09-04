@@ -425,15 +425,24 @@ INSERT INTO products (code, name, category, box_type, description, base_price, u
 
 ## 6. Migration Strategy
 
+All schema & seed changes go through Supabase migrations. Never edit the DB directly.
+
 ```bash
-# Generate migration
-supabase migration new init_schema
+# Create a new migration
+npx supabase migration new <migration-name>
+# → creates supabase/migrations/<timestamp>_<name>.sql
 
-# Apply locally
-supabase db reset
+# Apply pending migrations to linked cloud project
+npx supabase db push
 
-# Apply to production
-supabase db push
+# Reset local DB (migrations + seed)
+npx supabase db reset
 ```
 
-All schema changes go through Supabase migrations. Never edit the DB directly in production.
+### Workflow
+
+| Scenario | Command |
+|----------|---------|
+| Schema change | `npx supabase migration new <name>` → edit file → `npx supabase db push` |
+| Seed data change | Edit or add migration → `npx supabase db push` |
+| New team member | `npx supabase link --project-ref <ref>` → `npx supabase db push` |

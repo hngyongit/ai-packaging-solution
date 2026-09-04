@@ -8,7 +8,7 @@
 
 | File | Đọc khi nào |
 |------|-------------|
-| **`docs/GETSTARTED.md`** | ← Bạn đang ở đây. Tổng quan, setup, workflow. |
+| **`GETSTARTED.md`** | ← Bạn đang ở đây. Tổng quan, setup, workflow. |
 | `docs/DEVELOPMENT_GUIDE.md` | Trước khi code — conventions, folder structure, coding rules, libraries. |
 | `docs/ARCHITECTURE.md` | Trước khi viết API route, data access, auth — security model, two-tier access, data flow. |
 | `docs/DATABASE_SCHEMA.md` | Trước khi query Supabase — tables, columns, RLS policies, indexes. |
@@ -81,23 +81,61 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 > **`.env.local`** đã có trong `.gitignore` — không bao giờ commit file này.
 
-### Bước 3 — Database (Supabase)
+### Bước 3 — Database (Supabase cloud — khuyến nghị)
 
-**Option A: Dùng Supabase cloud (khuyến nghị)**
+Mỗi dev tạo **Supabase project riêng** (free, 2 projects/account). Không dùng chung dev DB — data collision, reset không ảnh hưởng ai.
 
-1. Tạo project tại [supabase.com](https://supabase.com)
+1. Mỗi người tạo project tại [supabase.com](https://supabase.com) (Sign up → New project)
 2. Copy URL + keys vào `.env.local`
-3. Chạy migration (nếu có) hoặc apply schema từ `docs/DATABASE_SCHEMA.md`
-4. Bật RLS trên tất cả tables theo policies trong `docs/DATABASE_SCHEMA.md`
+3. Cài Supabase CLI (nếu chưa có): https://supabase.com/docs/guides/cli
+4. Link local với project của bạn:
 
-**Option B: Supabase local**
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+# project-ref: Supabase Dashboard → Project Settings → General → Reference ID
+```
+
+5. Chạy migration + seed:
+
+```bash
+npx supabase db push
+npm run db:seed
+```
+
+- `supabase db push` — tạo tables + RLS + products (6 sản phẩm mẫu)
+- `node scripts/seed.mjs` — tạo 3 tài khoản test + profiles + sample data (dùng Admin API, password hoạt động được)
+
+Chạy lại an toàn — `DROP TABLE IF EXISTS` + `ON CONFLICT DO NOTHING` + upsert.
+
+**Sau bước 3 bạn đã có sẵn:**
+- 8 tables + RLS policies
+- 6 sản phẩm mẫu (carton 3 lớp, 5 lớp)
+- 3 tài khoản test (xem mục 11)
+- 1 consultation mẫu, 1 đơn hàng mẫu
+
+### Khi schema thay đổi
+
+Sửa file trong `supabase/migrations/` hoặc tạo migration mới:
+
+```bash
+npx supabase migration new <tên-migration>
+# sửa file vừa tạo trong supabase/migrations/
+npx supabase db push
+```
+
+### Khi seed data thay đổi
+
+Thêm seed INSERT vào migration mới hoặc dùng Supabase Dashboard → SQL Editor.
+
+### Option: Supabase local
 
 ```bash
 supabase start
-supabase db push
+supabase db reset     # chạy migrations + seed
 ```
 
-Supabase Studio mở tại `http://localhost:54323`.
+Supabase Studio local tại `http://localhost:54323`.
 
 ### Bước 4 — Chạy dev
 
@@ -169,7 +207,10 @@ AI_Packaging_solution/
 │   └── types/                   # Shared types
 │       └── database.ts          # Supabase-generated types
 │
-├── supabase/                    # Supabase config + migrations
+├── supabase/                    # Supabase config + migrations + seed
+│   ├── config.toml
+│   ├── migrations/              # Migration files (applied via supabase db push)
+│   └── seed.sql                 # Test data
 ├── public/                      # Static assets
 ├── .env.example
 ├── .env.local                   # Gitignored — local env vars
@@ -263,6 +304,15 @@ Consultation → Place Order → staff_review → confirmed
 
 ## 8. Development workflow
 
+### Khi mới clone repo (team member)
+
+1. `npm install`
+2. Copy `.env.example` → `.env.local`, điền URL + keys của **project riêng**
+3. `npx supabase login && npx supabase link --project-ref <ref-của-bạn>`
+4. `npx supabase db push && npm run db:seed`
+5. `npm run dev`
+6. Login với 1 trong 3 tài khoản test (xem mục 11)
+
 ### Khi thêm feature mới
 
 1. Tạo feature module: `src/features/<feature>/`
@@ -331,3 +381,31 @@ Tạo mới theo pattern: `src/features/<name>/` với components/, hooks/, util
 
 **Q: Cần thay đổi API route?**
 Route Handlers ở `src/app/api/` — thin layer, gọi xuống `src/lib/data/`. Business logic không nằm trong route handler.
+
+---
+
+## 11. Tài khoản test (seed)
+
+Sau khi chạy `supabase/seed.sql`, có sẵn 3 tài khoản:
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| customer | `test-customer@test.com` | `test123456` | Nguyễn Văn A |
+| sales | `test-sales@test.com` | `test123456` | Trần Thị B |
+| admin | `test-admin@test.com` | `test123456` | Lê Văn C |
+
+Seed cũng tạo 6 sản phẩm mẫu, 1 consultation mẫu, 1 đơn hàng mẫu.
+
+### Thêm seed data mới or schema change
+
+Tạo migration mới:
+
+```bash
+npx supabase migration new <tên>
+# sửa file trong supabase/migrations/
+npx supabase db push
+```
+
+Sửa seed: thêm INSERT vào migration mới hoặc dùng SQL Editor.
+
+Chạy lại an toàn. Team member nào cũng chạy được sau khi pull code mới.
