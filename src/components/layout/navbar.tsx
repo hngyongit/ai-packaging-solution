@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { List, X } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { List, X, User } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 const navLinks = [
   { href: '/', label: 'Trang chủ' },
@@ -12,8 +13,14 @@ const navLinks = [
   { href: '/pricing', label: 'Bảng giá' },
 ]
 
-export function Navbar() {
+export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<{ email?: string } | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
@@ -38,20 +45,34 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            Đăng nhập
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors active:scale-[0.98]"
-          >
-            Đăng ký
-          </Link>
-        </div>
+        {!hideAuth && (
+          <div className="hidden md:flex items-center gap-4">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors active:scale-[0.98]"
+              >
+                <User className="h-4 w-4" />
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors active:scale-[0.98]"
+                >
+                  Đăng ký
+                </Link>
+              </>
+            )}
+          </div>
+        )}
 
         <button
           onClick={() => setOpen(!open)}
@@ -81,20 +102,37 @@ export function Navbar() {
             </Link>
           ))}
           <hr className="my-2 border-gray-200" />
-          <Link
-            href="/login"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-          >
-            Đăng nhập
-          </Link>
-          <Link
-            href="/register"
-            onClick={() => setOpen(false)}
-            className="block rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-          >
-            Đăng ký
-          </Link>
+          {!hideAuth && (
+            <>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                  >
+                    Đăng ký
+                  </Link>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
     </nav>

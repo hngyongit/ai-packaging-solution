@@ -7,17 +7,38 @@ import { MagnifyingGlass, ArrowClockwise, Package } from '@phosphor-icons/react'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<{ email?: string; user_metadata?: { full_name?: string } } | null>(null)
+  const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user
+      if (!u) { setUser(null); setLoading(false); return }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', u.id)
+        .single()
+
+      setUser({
+        ...u,
+        user_metadata: {
+          ...u.user_metadata,
+          full_name: profile?.full_name || u.user_metadata?.full_name || '',
+        },
+      })
+      setLoading(false)
+    })
   }, [supabase])
+
+  if (loading) return <DashboardSkeleton />
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          Xin chào, {user?.user_metadata?.full_name || user?.email || 'bạn'}
+          Xin chào, {user?.user_metadata?.full_name || 'bạn'}
         </h1>
         <p className="mt-1 text-sm text-gray-500">Chào mừng trở lại</p>
       </div>
@@ -62,6 +83,28 @@ export default function DashboardPage() {
         >
           Bắt đầu tư vấn
         </Link>
+      </div>
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-8 w-64 rounded bg-gray-200" />
+        <div className="h-4 w-32 rounded bg-gray-200" />
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <div className="h-10 w-36 rounded-md bg-gray-200" />
+        <div className="h-10 w-28 rounded-md bg-gray-200" />
+        <div className="h-10 w-32 rounded-md bg-gray-200" />
+      </div>
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        <div className="h-12 w-12 rounded-full bg-gray-200" />
+        <div className="h-6 w-48 rounded bg-gray-200" />
+        <div className="h-4 w-72 rounded bg-gray-200" />
+        <div className="h-10 w-36 rounded-md bg-gray-200" />
       </div>
     </div>
   )

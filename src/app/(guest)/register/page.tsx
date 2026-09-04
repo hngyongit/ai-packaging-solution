@@ -37,7 +37,7 @@ export default function RegisterPage() {
 
   async function onSubmit({ name, email, phone, password }: RegisterForm) {
     setServerError('')
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name, phone } },
@@ -45,6 +45,13 @@ export default function RegisterPage() {
     if (error) {
       setServerError(error.message)
       return
+    }
+    if (data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: name,
+        phone,
+      })
     }
     router.push('/dashboard')
     router.refresh()

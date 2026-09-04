@@ -21,9 +21,9 @@ if (!url || !key) { console.error('Missing env vars'); process.exit(1) }
 const supabase = createClient(url, key)
 
 const testUsers = [
-  { email: 'test-customer@test.com', password: 'test123456', meta: { name: 'Nguyễn Văn A', role: 'customer' } },
-  { email: 'test-sales@test.com', password: 'test123456', meta: { name: 'Trần Thị B', role: 'sales' } },
-  { email: 'test-admin@test.com', password: 'test123456', meta: { name: 'Lê Văn C', role: 'admin' } },
+  { email: 'test-customer@test.com', password: 'test123456', meta: { full_name: 'Nguyễn Văn A', role: 'customer' } },
+  { email: 'test-sales@test.com', password: 'test123456', meta: { full_name: 'Trần Thị B', role: 'sales' } },
+  { email: 'test-admin@test.com', password: 'test123456', meta: { full_name: 'Lê Văn C', role: 'admin' } },
 ]
 
 async function main() {

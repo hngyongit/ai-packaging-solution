@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const supabase = createClient()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
   const {
     register,
     handleSubmit,
@@ -35,16 +36,29 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      if (data.user) {
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user
+      setUser(u)
+
+      if (u) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone, company_name, default_address')
+          .eq('id', u.id)
+          .maybeSingle()
+
         reset({
-          fullName: data.user.user_metadata?.full_name || '',
-          phone: data.user.user_metadata?.phone || '',
+          fullName: profile?.full_name || u.user_metadata?.full_name || '',
+          phone: profile?.phone || u.user_metadata?.phone || '',
+          company: profile?.company_name || '',
+          address: profile?.default_address || '',
         })
       }
+      setLoading(false)
     })
   }, [supabase, reset])
+
+  if (loading) return <ProfileSkeleton />
 
   async function onSubmit(data: ProfileForm) {
     setSaved(false)
@@ -149,6 +163,35 @@ export default function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="max-w-2xl space-y-8 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-8 w-56 rounded bg-gray-200" />
+        <div className="h-4 w-40 rounded bg-gray-200" />
+      </div>
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-4 w-16 rounded bg-gray-200" />
+            <div className="h-10 w-full rounded-lg bg-gray-200" />
+          </div>
+        ))}
+        <div className="h-10 w-28 rounded-md bg-gray-200" />
+      </div>
+      <div className="h-px w-full bg-gray-200" />
+      <div className="space-y-4">
+        <div className="h-5 w-40 rounded bg-gray-200" />
+        <div className="h-4 w-56 rounded bg-gray-200" />
+        <div className="flex gap-3">
+          <div className="h-10 w-32 rounded-md bg-gray-200" />
+          <div className="h-10 w-32 rounded-md bg-gray-200" />
+        </div>
+      </div>
     </div>
   )
 }

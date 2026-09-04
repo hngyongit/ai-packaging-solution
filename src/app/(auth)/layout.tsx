@@ -8,7 +8,7 @@ export default function AuthLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <Navbar hideAuth />
       <div className="flex min-h-[calc(100dvh-4rem)]">
         <DashboardNav />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
