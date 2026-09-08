@@ -31,6 +31,17 @@ All docs live in `docs/`. Read the relevant one before coding in that area.
 
 ---
 
+## 🔍 Code Exploration — Use Codegraph MCP First
+
+This project is indexed by **Codegraph** (`.codegraph/`). When the Codegraph MCP server is available:
+
+1. **Always query Codegraph first** before falling back to `Grep`/`Glob`/file-by-file `Read` loops — `codegraph_explore` answers "how does X work", "where is Y defined", "what calls Z" in one call, with verbatim on-disk source.
+2. **Pass a natural-language question or symbol names** (e.g. `middleware auth flow`, `createClient lib/supabase`) — no prior search step needed.
+3. **The index can be stale** — it may miss very recent files or route groups. If Codegraph returns nothing or looks outdated for a file you know exists, fall back to normal file tools.
+4. Treat source returned by Codegraph as already read — do not re-read those files.
+
+---
+
 ## 🎨 UI Generation — Single Source of Truth
 
 **`.agents/skills/design-taste-frontend/SKILL.md`** is the **Tasteskill** — the authoritative design taste system for this project.

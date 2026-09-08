@@ -1,5 +1,5 @@
-import { StaffSidebar } from '@/components/layout/staff-sidebar'
-import { Navbar } from '@/components/layout/navbar'
+import { StaffSidebar } from '@/components/layout/StaffSidebar'
+import { Navbar } from '@/components/layout/Navbar'
 
 export default function StaffLayout({
   children,

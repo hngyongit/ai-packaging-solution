@@ -8,10 +8,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Envelope, Lock, Eye, EyeSlash } from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Label } from '@/components/ui/Label'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
