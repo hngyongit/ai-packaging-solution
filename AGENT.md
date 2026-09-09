@@ -166,8 +166,14 @@ src/
 import { createBrowserClient } from '@supabase/ssr'
 
 // Server (admin, service_role key)
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 ```
+
+### Supabase Schema / Database Changes
+- When changing schema, RLS policies, indexes, functions, triggers, seed data, or any database object, create or update a Supabase migration in `supabase/migrations/`.
+- After the migration is ready, push it to the linked Supabase project with `npx supabase db push` unless the user explicitly asks for local-only work.
+- Verify the pushed change with a real query, route check, build, or Supabase CLI command appropriate to the change.
+- If the Supabase CLI is not linked or authenticated, stop and report the exact command/error needed to continue.
 
 ### Order Status State Machine
 ```

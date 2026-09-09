@@ -40,17 +40,17 @@
 
 | # | Task | Files | Pri | Est. |
 |---|------|-------|-----|------|
-| B1 | Orders API (CRUD) | `src/app/api/orders/route.ts` | P0 | 2h |
-| B2 | Order status API | `src/app/api/orders/[id]/status/route.ts` | P0 | 1h |
-| B3 | Order payment API | `src/app/api/orders/[id]/payment/route.ts` | P0 | 1h |
-| B4 | Reorder API | `src/app/api/reorder/route.ts` | P1 | 1h |
-| B5 | Upload API | `src/app/api/upload/route.ts` | P0 | 1h |
-| B6 | Standalone order page | `src/app/(public)/order/page.tsx` | P0 | 4h |
-| B7 | Customer orders list | `src/app/(auth)/dashboard/orders/page.tsx` | P0 | 3h |
-| B8 | Customer order detail | `src/app/(auth)/dashboard/orders/[id]/page.tsx` | P0 | 3h |
-| B9 | Order history | `src/app/(auth)/dashboard/history/page.tsx` | P1 | 2h |
-| B10 | Reorder page | `src/app/(auth)/dashboard/reorder/page.tsx` | P1 | 2h |
-| B11 | Data access (orders) | `src/lib/data/orders.ts` | P0 | 1h |
+| B1 | ✅ Orders API (CRUD) | `src/app/api/orders/route.ts` | P0 | 2h |
+| B2 | ✅ Order status API | `src/app/api/orders/[id]/status/route.ts` | P0 | 1h |
+| B3 | ✅ Order payment API | `src/app/api/orders/[id]/payment/route.ts` | P0 | 1h |
+| B4 | ✅ Reorder API | `src/app/api/reorder/route.ts` | P1 | 1h |
+| B5 | ✅ Upload API | `src/app/api/upload/route.ts` | P0 | 1h |
+| B6 | ✅ Standalone order page | `src/app/(public)/order/page.tsx` | P0 | 4h |
+| B7 | ✅ Customer orders list | `src/app/(auth)/dashboard/orders/page.tsx` | P0 | 3h |
+| B8 | ✅ Customer order detail | `src/app/(auth)/dashboard/orders/[id]/page.tsx` | P0 | 3h |
+| B9 | ✅ Order history | `src/app/(auth)/dashboard/history/page.tsx` | P1 | 2h |
+| B10 | ✅ Reorder page | `src/app/(auth)/dashboard/reorder/page.tsx` | P1 | 2h |
+| B11 | ✅ Data access (orders) | `src/lib/data/orders.ts` | P0 | 1h |
 
 **Files**: `src/app/api/orders/*`, `src/app/api/reorder/*`, `src/app/api/upload/*`, `src/app/(public)/order/*`, `src/app/(auth)/dashboard/orders/*`, `src/app/(auth)/dashboard/history/*`, `src/app/(auth)/dashboard/reorder/*`, `src/lib/data/orders.ts`
 
