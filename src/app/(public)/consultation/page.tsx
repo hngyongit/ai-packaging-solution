@@ -1,5 +1,5 @@
-import UnderDevelopmentPage from '@/app/under-development'
+import { ConsultationForm } from './consultation-form'
 
 export default function ConsultationPage() {
-  return <UnderDevelopmentPage />
+  return <ConsultationForm />
 }
