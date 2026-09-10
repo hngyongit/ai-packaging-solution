@@ -1,9 +1,9 @@
 import { Package, Plus, Trash } from '@phosphor-icons/react'
 import { type FieldErrors, type UseFormRegister, type UseFormSetValue } from 'react-hook-form'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
 
 import { Field } from './form-field'
 import { type OrderFormValues } from './order-schema'

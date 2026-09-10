@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { CaretDown, CheckCircle, Lightbulb, Package, PiggyBank } from '@phosphor-icons/react'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 import { type AIRecommendation } from '@/lib/ai/types'
 
 import { StepIndicator } from './step-indicator'

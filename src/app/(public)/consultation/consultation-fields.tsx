@@ -1,4 +1,4 @@
-import { Label } from '@/components/ui/label'
+import { Label } from '@/components/ui/Label'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

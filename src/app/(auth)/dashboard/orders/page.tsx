@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/Button'
 import { getCurrentProfile, getCustomerOrderById, getCustomerOrders, isOrderStatus, parsePage } from '@/lib/data/orders'
 import { getActiveProductOptions } from '@/lib/data/products'
 import { cn } from '@/lib/utils'

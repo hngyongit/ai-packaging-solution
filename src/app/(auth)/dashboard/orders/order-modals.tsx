@@ -5,18 +5,17 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { OrderForm } from "@/app/(public)/order/order-form"
 import { type ProductOption } from "@/app/(public)/order/order-types"
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/Button"
 import { Modal } from "@/components/ui/modal"
+import { StatusBadge } from "@/components/ui/status-badge"
 import {
   canCustomerCancelOrder,
   canReorderOrder,
   formatCurrency,
   formatDateTime,
-  getOrderStatusLabel,
   getPaymentMethodLabel,
   getPaymentStatusLabel,
   type CustomerOrder,
-  type OrderStatus,
 } from "@/lib/data/order-shared"
 import { cn } from "@/lib/utils"
 import { CancelOrderButton } from "./cancel-order-button"
@@ -73,7 +72,7 @@ function OrderQuickViewModal({
       onOpenChange={onOpenChange}
       footer={
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          {canCancel ? <CancelOrderButton orderId={order.id} /> : null}
+          {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
           {canReorder ? (
             <Link href={`/dashboard/reorder?id=${order.id}`} className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
               Đặt lại
@@ -174,19 +173,6 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm leading-6 text-gray-700">{value}</p>
     </div>
   )
-}
-
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const className =
-    status === "cancelled"
-      ? "border-red-200 bg-red-50 text-red-700"
-      : status === "completed" || status === "delivered"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : status === "production" || status === "deposit_paid"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-amber-200 bg-amber-50 text-amber-700"
-
-  return <span className={cn("inline-flex h-5 items-center rounded-full border px-2 text-xs font-medium", className)}>{getOrderStatusLabel(status)}</span>
 }
 
 function PaymentBadge({ status }: { status: string | null | undefined }) {

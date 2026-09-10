@@ -137,6 +137,32 @@ export async function getCustomerOrders(profileId: string, input: OrdersQuery = 
   }
 }
 
+const IN_PROGRESS_STATUSES = ['pending', 'staff_review', 'confirmed', 'deposit_paid', 'production'] as const
+
+export async function getCustomerDashboardStats(profileId: string) {
+  const admin = await createAdminClient()
+
+  const [totalResult, inProgressResult, savedResult] = await Promise.all([
+    admin.from('orders').select('id', { count: 'exact', head: true }).eq('customer_id', profileId),
+    admin
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_id', profileId)
+      .in('status', [...IN_PROGRESS_STATUSES]),
+    admin.from('saved_products').select('id', { count: 'exact', head: true }).eq('customer_id', profileId),
+  ])
+
+  if (totalResult.error) throw totalResult.error
+  if (inProgressResult.error) throw inProgressResult.error
+  if (savedResult.error) throw savedResult.error
+
+  return {
+    totalOrders: totalResult.count ?? 0,
+    inProgressOrders: inProgressResult.count ?? 0,
+    savedProducts: savedResult.count ?? 0,
+  }
+}
+
 export async function getCustomerOrderById(profileId: string, orderId: string) {
   const admin = await createAdminClient()
   const { data: order, error } = await admin

@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { type UseFormRegister, type FieldErrors } from 'react-hook-form'
 import { CheckCircle, FileArrowUp, SignIn } from '@phosphor-icons/react'
 
-import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { buttonVariants } from '@/components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/textarea'
 
 import { Field } from './form-field'

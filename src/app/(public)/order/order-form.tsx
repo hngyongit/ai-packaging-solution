@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight } from '@phosphor-icons/react'
 
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/Button'
+import { PaymentConfirmationModal } from '@/components/modals/payment-confirmation'
 import { createClient } from '@/lib/supabase/client'
 
 import { OrderItems } from './order-items'
@@ -34,6 +35,7 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
   const [uploadError, setUploadError] = useState('')
   const [designFile, setDesignFile] = useState<File | null>(null)
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
@@ -129,6 +131,7 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
       }
       if (!response.ok) throw new Error(translateOrderError(result?.error ?? 'Không thể tạo đơn hàng'))
       setCreatedOrder(result.data)
+      if (values.paymentMethod === 'bank_transfer') setPaymentModalOpen(true)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể tạo đơn hàng'
       if (message.toLowerCase().includes('upload')) setUploadError(message)
@@ -136,7 +139,19 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
     }
   }
 
-  if (createdOrder) return <OrderSuccess order={createdOrder} variant={variant} />
+  if (createdOrder) {
+    return (
+      <>
+        <OrderSuccess order={createdOrder} variant={variant} />
+        <PaymentConfirmationModal
+          order={createdOrder}
+          contactPhone={form.getValues('contactPhone')}
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+        />
+      </>
+    )
+  }
 
   const formContent = (
     <>

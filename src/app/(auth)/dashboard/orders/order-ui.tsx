@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { ArrowRight, Clock, Package, Receipt } from '@phosphor-icons/react/dist/ssr'
 
-import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { buttonVariants } from '@/components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { cn } from '@/lib/utils'
 import {
   canCustomerCancelOrder,
@@ -11,12 +14,12 @@ import {
   formatDateTime,
   getItemSummary,
   getOrderProgress,
-  getOrderStatusLabel,
   getPaymentStatusLabel,
   type CustomerOrder,
-  type OrderStatus,
 } from '@/lib/data/order-shared'
 import { CancelOrderButton } from './cancel-order-button'
+
+export { StatusBadge }
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -56,28 +59,6 @@ export function buildHref(pathname: string, params: SearchParams, updates: Recor
 
   const queryString = query.toString()
   return queryString ? `${pathname}?${queryString}` : pathname
-}
-
-export function StatusBadge({ status }: { status: OrderStatus }) {
-  const className =
-    status === 'cancelled'
-      ? 'border-red-200 bg-red-50 text-red-700'
-      : status === 'completed' || status === 'delivered'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : status === 'production' || status === 'deposit_paid'
-          ? 'border-blue-200 bg-blue-50 text-blue-700'
-          : 'border-amber-200 bg-amber-50 text-amber-700'
-
-  return (
-    <span
-      className={cn(
-        'inline-flex h-5 w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        className
-      )}
-    >
-      {getOrderStatusLabel(status)}
-    </span>
-  )
 }
 
 export function PaymentBadge({ status }: { status: string | null | undefined }) {
@@ -201,7 +182,7 @@ export function OrderCard({
             <p className="text-lg font-semibold text-foreground">{formatCurrency(order.total_amount)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canCancel ? <CancelOrderButton orderId={order.id} /> : null}
+            {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
             {canReorder ? (
               <Link
                 href={`/dashboard/reorder?id=${order.id}`}
@@ -275,22 +256,14 @@ export function OrdersEmptyState({
   actionHref?: string
   actionLabel?: string
 }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 py-14 text-center">
-      <Package className="h-10 w-10 text-gray-300" />
-      <h2 className="mt-4 text-lg font-semibold text-foreground">{title}</h2>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">{description}</p>
-      <Link href={actionHref} className={cn(buttonVariants({ size: 'lg' }), 'mt-5')}>
-        {actionLabel}
-      </Link>
-    </div>
-  )
+  return <EmptyState title={title} description={description} actionHref={actionHref} actionLabel={actionLabel} />
 }
 
 export function OrdersErrorState() {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-      Không thể tải danh sách đơn hàng lúc này. Vui lòng làm mới trang.
-    </div>
+    <ErrorState
+      title="Không thể tải danh sách đơn hàng"
+      description="Vui lòng làm mới trang hoặc thử lại sau."
+    />
   )
 }
