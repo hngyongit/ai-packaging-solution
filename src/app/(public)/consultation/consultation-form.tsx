@@ -5,9 +5,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Robot, Spinner } from '@phosphor-icons/react'
 
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Label } from '@/components/ui/Label'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { AIRecommendation } from '@/lib/ai/types'
 
 import { BOX_STYLE_LABELS, consultationToInput, consultationSchema, type ConsultationFormValues } from './consultation-schema'

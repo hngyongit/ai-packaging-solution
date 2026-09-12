@@ -1,5 +1,5 @@
 import { DashboardNav } from '@/components/layout/DashboardNav'
-import { Navbar } from '@/components/layout/Navbar'
+import { Navbar } from '@/components/layout/navbar'
 
 export default function AuthLayout({
   children,

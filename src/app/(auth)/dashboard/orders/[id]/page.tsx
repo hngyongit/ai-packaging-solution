@@ -7,8 +7,8 @@ import {
   MapPin,
 } from '@phosphor-icons/react/dist/ssr'
 
-import { buttonVariants } from '@/components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import {
   canCustomerCancelOrder,

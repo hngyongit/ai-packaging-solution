@@ -8,7 +8,7 @@ import {
   Truck,
 } from '@phosphor-icons/react/dist/ssr'
 
-import { Card, CardContent } from '@/components/ui/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   ORDER_STATUS_SEQUENCE,
   getOrderStatusLabel,

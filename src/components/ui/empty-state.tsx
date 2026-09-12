@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Package } from '@phosphor-icons/react/dist/ssr'
 
-import { buttonVariants } from '@/components/ui/Button'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 type EmptyStateProps = {

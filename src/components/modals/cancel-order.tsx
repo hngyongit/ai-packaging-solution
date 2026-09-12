@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { WarningCircle, XCircle } from '@phosphor-icons/react'
 
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 
 const CANCEL_REASONS = [

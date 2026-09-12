@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { ArrowRight, Clock, Package, Receipt } from '@phosphor-icons/react/dist/ssr'
 
-import { buttonVariants } from '@/components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { StatusBadge } from '@/components/ui/status-badge'
