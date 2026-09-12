@@ -88,14 +88,14 @@
 | # | Task | Files | Pri | Est. |
 |---|------|-------|-----|------|
 | D1 |✅ About page | `src/app/(public)/about/page.tsx` — hero, story, stats, gallery, equipment | P1 | 3h |
-| D2 | Pricing page | `src/app/(public)/pricing/page.tsx` — product catalog table, price tiers | P1 | 3h |
+| D2 |✅ Pricing page | `src/app/(public)/pricing/page.tsx` — product catalog table, price tiers | P1 | 3h |
 | D3 |✅ Enhance customer dashboard | `src/app/(auth)/dashboard/page.tsx` — add stats cards (total orders, in-progress, saved), recent orders table | P0 | 3h |
 | D4 |✅ Payment confirmation modal (M1) | `src/components/modals/payment-confirmation.tsx` — used by order page | P0 | 1h |
 | D5 |✅ Cancel order modal (M2) | `src/components/modals/cancel-order.tsx` — used by order detail | P0 | 1h |
-| D6 | Price change notification modal (M3) | `src/components/modals/price-change.tsx` — used by staff consultation review | P1 | 1h |
-| D7 | Upload payment proof modal (M4) | `src/components/modals/upload-proof.tsx` — used by staff order detail | P1 | 1h |
-| D8 | Customer quick view modal (M5) | `src/components/modals/customer-quick-view.tsx` — used by staff customers | P1 | 1h |
-| D9 | Product edit drawer (M6) | `src/components/modals/product-edit-drawer.tsx` — used by staff products | P1 | 1.5h |
+| D6 |✅ Price change notification modal (M3) | `src/components/modals/price-change.tsx` — used by staff consultation review | P1 | 1h |
+| D7 |✅ Upload payment proof modal (M4) | `src/components/modals/upload-proof.tsx` — used by staff order detail | P1 | 1h |
+| D8 |✅ Customer quick view modal (M5) | `src/components/modals/customer-quick-view.tsx` — used by staff customers | P1 | 1h |
+| D9 |✅ Product edit drawer (M6) | `src/components/modals/product-edit-drawer.tsx` — used by staff products | P1 | 1.5h |
 | D10 |✅ Status badge + timeline components | `src/components/ui/status-badge.tsx`, `src/components/ui/status-timeline.tsx` — build as part of D3 dashboard | P0 | 1h |
 | D11 |✅ Empty state + error state components | `src/components/ui/empty-state.tsx`, `src/components/ui/error-state.tsx` — build as part of D3 dashboard | P0 | 1h |
 | D12 | Update DB types | `src/types/database.ts` — add full types for all tables | P0 | 1h |

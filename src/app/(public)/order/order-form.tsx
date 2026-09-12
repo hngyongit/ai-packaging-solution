@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight } from '@phosphor-icons/react'
 
 import { Button, buttonVariants } from '@/components/ui/button'
-import { PaymentConfirmationModal } from '@/components/modals/payment-confirmation'
+import { PaymentConfirmationModal } from '@/components/modals/PaymentConfirmation'
 import { createClient } from '@/lib/supabase/client'
 
 import { OrderItems } from './order-items'
