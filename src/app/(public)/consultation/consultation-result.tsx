@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CaretDown, CheckCircle, Lightbulb, Package, PiggyBank } from '@phosphor-icons/react'
+import { CaretDown, CheckCircle, Lightbulb, Package, PiggyBank, ShieldCheck } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { type AIRecommendation } from '@/lib/ai/types'
@@ -35,8 +35,12 @@ export function ConsultationResult({ recommendation }: { recommendation: AIRecom
         <div className="mt-8 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md">
           <div className="p-6">
             <div className="grid gap-6 lg:grid-cols-[9rem_1fr]">
-              <div className="flex h-24 items-center justify-center rounded-lg bg-gray-100 p-4">
-                <Package className="h-16 w-16 text-blue-600" weight="duotone" />
+              <div className="flex h-24 items-center justify-center overflow-hidden rounded-lg bg-gray-100">
+                {r.boxStyleImageUrl ? (
+                  <img src={r.boxStyleImageUrl} alt={r.boxStyle} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <Package className="h-16 w-16 text-blue-600" weight="duotone" />
+                )}
               </div>
               <div className="space-y-2.5 text-sm">
                 <h2 className="text-lg font-bold text-gray-900">{r.boxType}</h2>
@@ -46,6 +50,9 @@ export function ConsultationResult({ recommendation }: { recommendation: AIRecom
                 <SpecRow label="Sóng" value={r.fluteType} />
                 <SpecRow label="Chất liệu" value={r.materialDescription} />
                 <SpecRow label="In ấn" value={r.printingRecommendation} />
+                {r.packagingProtection && (
+                  <SpecRow label="Bọc bảo vệ" value={`${r.packagingProtection.material}${r.packagingProtection.thicknessCm > 0 ? ` (+${r.packagingProtection.thicknessCm}cm mỗi chiều)` : ''}`} />
+                )}
               </div>
             </div>
 
@@ -66,6 +73,29 @@ export function ConsultationResult({ recommendation }: { recommendation: AIRecom
                 <p className="mt-1 text-sm text-gray-600">Linh hoạt với khách nhập hàng liên tục</p>
               </div>
             </div>
+
+            {/* Packaging protection */}
+            {r.packagingProtection && (
+              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
+                <p className="flex items-center gap-1.5 font-medium text-amber-800">
+                  <ShieldCheck className="h-4 w-4" />
+                  Bọc bảo vệ khuyến nghị
+                </p>
+                <p className="mt-1.5 text-amber-800">
+                  <span className="font-semibold">{r.packagingProtection.material}</span>
+                  {r.packagingProtection.thicknessCm > 0 && (
+                    <span> ({r.packagingProtection.thicknessCm}cm mỗi chiều, bọc 2 phía)</span>
+                  )}
+                </p>
+                <p className="mt-1 text-amber-700">{r.packagingProtection.howToWrap}</p>
+                {r.packagingProtection.thicknessCm > 0 && (
+                  <p className="mt-2 rounded bg-white/70 px-2.5 py-1.5 text-xs text-amber-700">
+                    Kích thước thùng đã bao gồm phần này (sản phẩm + dung sai + 2 ×{' '}
+                    {r.packagingProtection.thicknessCm}cm bọc).
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Advice box */}
             <div className="mt-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-800">

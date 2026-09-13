@@ -6,11 +6,12 @@ export { BOX_STYLE_LABELS }
 export type { BoxStyle } from '@/lib/ai/types'
 
 // AI decides layers/flute/purchase-input itself — no preferred-layers / flute /
-// purchase-frequency input from the customer. Box style IS customer-chosen.
+// purchase-frequency input from the customer. Box style optional: khi chọn, AI
+// tôn trọng; bỏ trống, AI tự chọn (mặc định RSC/A1).
 export const consultationSchema = z
   .object({
     productType: z.string().trim().min(1, 'Vui lòng nhập sản phẩm cần đóng gói').max(200),
-    boxStyle: z.enum(BOX_STYLES, { required_error: 'Chọn kiểu dáng thùng' }),
+    boxStyle: z.enum(BOX_STYLES).optional().describe('Bỏ trống để AI tự chọn kiểu thùng'),
     lengthCm: z.coerce.number({ invalid_type_error: 'Chiều dài không hợp lệ' }).positive('Nhập chiều dài (cm)').max(9999),
     widthCm: z.coerce.number({ invalid_type_error: 'Chiều rộng không hợp lệ' }).positive('Nhập chiều rộng (cm)').max(9999),
     heightCm: z.coerce.number({ invalid_type_error: 'Chiều cao không hợp lệ' }).positive('Nhập chiều cao (cm)').max(9999),
@@ -19,6 +20,11 @@ export const consultationSchema = z
     hasPrinting: z.boolean(),
     printFaces: z.enum(['2_main', '4_sides']).optional(),
     hasDesignFile: z.boolean().optional(),
+    notes: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || v.trim().split(/\s+/).length <= 100, 'Ghi chú tối đa 100 chữ')
+      .optional(),
   })
   .superRefine((val, ctx) => {
     if (val.hasPrinting && !val.printFaces) {
@@ -39,4 +45,5 @@ export const consultationToInput = (values: ConsultationFormValues) => ({
   hasPrinting: values.hasPrinting,
   printFaces: values.hasPrinting ? values.printFaces : undefined,
   hasDesignFile: values.hasPrinting ? values.hasDesignFile : undefined,
+  notes: values.notes?.trim() || undefined,
 })

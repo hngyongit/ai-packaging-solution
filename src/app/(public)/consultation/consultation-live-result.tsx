@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CaretDown, Lightbulb, Package } from '@phosphor-icons/react'
+import { CaretDown, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import type { AIRecommendation } from '@/lib/ai/types'
@@ -18,12 +18,22 @@ export type WorkshopResult =
 export function LiveResultPanel({
   result,
   onRetry,
+  selectedPreviewUrl,
 }: {
   result: WorkshopResult
   onRetry: () => void
+  selectedPreviewUrl?: string
 }) {
+  const readyImageUrl = result.status === 'ready' ? result.recommendation.boxStyleImageUrl : undefined
+  const imageUrl = readyImageUrl ?? selectedPreviewUrl
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
+      {imageUrl && (
+        <div className="aspect-[16/8] overflow-hidden border-b border-gray-200 bg-gray-50">
+          <img src={imageUrl} alt="Kiểu thùng" className="h-full w-full object-contain" />
+        </div>
+      )}
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
           <Package className="h-4 w-4 text-blue-600" weight="duotone" />
@@ -105,9 +115,18 @@ function ReadyState({
   const stars = Math.round(r.confidence * 5)
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-base font-bold text-gray-900">{r.boxType}</h3>
-        <p className="text-sm text-gray-500">{r.boxStyle}</p>
+      <div className="flex items-start gap-3">
+        <div className="h-16 w-20 shrink-0 overflow-hidden rounded-md border border-gray-100 bg-gray-50">
+          {r.boxStyleImageUrl ? (
+            <img src={r.boxStyleImageUrl} alt={r.boxStyle} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <Package className="h-8 w-8 text-gray-300" weight="duotone" />
+          )}
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-gray-900">{r.boxType}</h3>
+          <p className="text-sm text-gray-500">{r.boxStyle}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -116,6 +135,22 @@ function ReadyState({
         <MiniStat label="Sóng" value={r.fluteType} />
         <MiniStat label="MOQ" value={`${r.moq.toLocaleString('vi-VN')} thùng`} />
       </div>
+
+      {r.packagingProtection && (
+        <div className="rounded-lg bg-amber-50 p-3">
+          <p className="flex items-center gap-1 text-xs font-medium text-amber-700">
+            <ShieldCheck className="h-3.5 w-3.5" weight="fill" />
+            Bọc bảo vệ
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            <span className="font-semibold">{r.packagingProtection.material}</span>
+            {r.packagingProtection.thicknessCm > 0
+              ? ` (+${r.packagingProtection.thicknessCm}cm mỗi chiều)`
+              : ''}
+          </p>
+          <p className="mt-0.5 text-xs text-amber-700/80">{r.packagingProtection.howToWrap}</p>
+        </div>
+      )}
 
       <div className="rounded-lg bg-blue-50 p-3">
         <p className="text-xs font-medium text-blue-700 uppercase">Giá ước tính</p>

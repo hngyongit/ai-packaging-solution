@@ -8,13 +8,15 @@ import { Robot, Spinner } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import type { AIRecommendation } from '@/lib/ai/types'
+import type { BoxStyleRecord } from '@/lib/data/boxes'
 
-import { BOX_STYLE_LABELS, consultationToInput, consultationSchema, type ConsultationFormValues } from './consultation-schema'
-import { Field, InlineError, RadioGroup, Section } from './consultation-fields'
+import { consultationToInput, consultationSchema, type ConsultationFormValues } from './consultation-schema'
+import { BoxStylePicker, Field, InlineError, RadioGroup, Section } from './consultation-fields'
 import { LiveResultPanel, type WorkshopResult } from './consultation-live-result'
 
-export function ConsultationForm() {
+export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] }) {
   const [result, setResult] = useState<WorkshopResult>({ status: 'idle' })
 
   const {
@@ -38,11 +40,16 @@ export function ConsultationForm() {
       hasPrinting: false,
       printFaces: undefined,
       hasDesignFile: undefined,
+      notes: '',
     },
   })
 
   const hasPrinting = watch('hasPrinting')
   const hasDesignFile = watch('hasDesignFile')
+  const chosenBoxStyle = watch('boxStyle')
+  const chosenPreviewUrl = chosenBoxStyle
+    ? boxStyles.find((style) => style.id === chosenBoxStyle)?.previewUrl
+    : undefined
 
   async function onSubmit(values: ConsultationFormValues) {
     setResult({ status: 'loading' })
@@ -87,11 +94,17 @@ export function ConsultationForm() {
                   />
                 </Field>
 
-                <Field label="Kiểu dáng thùng" required error={errors.boxStyle?.message}>
-                  <RadioGroup
+                <Field
+                  label="Kiểu dáng thùng"
+                  error={errors.boxStyle?.message}
+                  helper="Chọn kiểu thùng hoặc để trống, AI sẽ chọn kiểu phù hợp nhất."
+                >
+                  <BoxStylePicker
                     value={watch('boxStyle')}
-                    onChange={(next) => setValue('boxStyle', next as ConsultationFormValues['boxStyle'], { shouldValidate: true })}
-                    options={Object.entries(BOX_STYLE_LABELS).map(([value, label]) => ({ value, label }))}
+                    onChange={(next) =>
+                      setValue('boxStyle', next as ConsultationFormValues['boxStyle'], { shouldValidate: true })
+                    }
+                    styles={boxStyles}
                   />
                 </Field>
 
@@ -163,6 +176,21 @@ export function ConsultationForm() {
                 )}
               </Section>
 
+              <Section title="Ghi chú thêm">
+                <Field
+                  label="Yêu cầu thêm (tối đa 100 chữ)"
+                  error={errors.notes?.message}
+                  helper="VD: hàng dễ vỡ cần bọc thêm xốp, khách muốn thùng cong tay, giao nhiều điểm..."
+                >
+                  <Textarea
+                    rows={3}
+                    placeholder="Cho AI biết thêm điều bạn cần..."
+                    aria-invalid={Boolean(errors.notes)}
+                    {...register('notes')}
+                  />
+                </Field>
+              </Section>
+
               <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -181,7 +209,11 @@ export function ConsultationForm() {
 
           {/* Right: live result */}
           <aside className="lg:sticky lg:top-6 lg:self-start">
-            <LiveResultPanel result={result} onRetry={() => setResult({ status: 'idle' })} />
+            <LiveResultPanel
+                result={result}
+                onRetry={() => setResult({ status: 'idle' })}
+                selectedPreviewUrl={chosenPreviewUrl}
+              />
           </aside>
         </div>
       </div>
