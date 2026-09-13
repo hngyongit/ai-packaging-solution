@@ -31,7 +31,7 @@ export type ConsultationRow = {
 
 export const consultationInputSchema = z.object({
   productType: z.string().trim().min(1, 'Vui lòng nhập sản phẩm cần đóng gói').max(200),
-  boxStyle: z.enum(BOX_STYLES),
+  boxStyle: z.enum(BOX_STYLES).optional(),
   lengthCm: z.coerce.number().positive('Nhập chiều dài (cm)').max(9999),
   widthCm: z.coerce.number().positive('Nhập chiều rộng (cm)').max(9999),
   heightCm: z.coerce.number().positive('Nhập chiều cao (cm)').max(9999),
@@ -44,6 +44,11 @@ export const consultationInputSchema = z.object({
   hasPrinting: z.boolean(),
   printFaces: z.enum(['2_main', '4_sides']).optional(),
   hasDesignFile: z.boolean().optional(),
+  notes: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || v.trim().split(/\s+/).length <= 100)
+    .optional(),
 })
 
 export type ConsultationInput = z.infer<typeof consultationInputSchema>
@@ -55,7 +60,7 @@ export async function createConsultation(input: ConsultationInput): Promise<{ id
     .insert({
       status: 'pending',
       product_type: input.productType,
-      box_style: input.boxStyle,
+      box_style: input.boxStyle ?? null,
       product_length: input.lengthCm,
       product_width: input.widthCm,
       product_height: input.heightCm,
@@ -66,6 +71,7 @@ export async function createConsultation(input: ConsultationInput): Promise<{ id
       has_printing: input.hasPrinting,
       print_faces: input.hasPrinting ? (input.printFaces ?? null) : null,
       has_design_file: input.hasPrinting ? (input.hasDesignFile ?? null) : null,
+      notes: input.notes ?? null,
     })
     .select('id')
     .single()
