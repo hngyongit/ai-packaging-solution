@@ -5,7 +5,7 @@ import { MagnifyingGlass, Cube, Truck } from '@phosphor-icons/react'
 import { useEffect, useRef } from 'react'
 
 export default function HomePage() {
-  const heroRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const el = heroRef.current
@@ -45,35 +45,84 @@ export default function HomePage() {
     }, 850)
   }, [])
 
+  // Hero = h-[166dvh], sticky stage pins for 166dvh - 100dvh = 2/3 screen.
+  // The band after the pin (scroll past 2/3 but not yet out of the hero) is a no-rest zone:
+  //   entering it downward → snap to the next section
+  //   entering it upward   → snap to page top, so the dec group is instantly back at its initial position
+  useEffect(() => {
+    const hero = heroRef.current
+    if (!hero) return
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const behavior = (): ScrollBehavior => (reducedMotion.matches ? 'auto' : 'smooth')
+
+    let lastY = window.scrollY
+    let snapTo: 'next' | 'home' | null = null
+
+    const onScroll = () => {
+      const y = window.scrollY
+      const goingUp = y < lastY
+      lastY = y
+
+      const top = hero.getBoundingClientRect().top
+      const pinReleased = -top >= hero.offsetHeight - window.innerHeight
+      const heroLeftView = top + hero.offsetHeight <= 0
+
+      if (!pinReleased || heroLeftView) {
+        snapTo = null // parked on hero or on a later section → arm both directions
+        return
+      }
+      if (snapTo) return // one snap in flight
+
+      snapTo = goingUp ? 'home' : 'next'
+      if (snapTo === 'home') {
+        window.scrollTo({ top: 0, behavior: behavior() })
+      } else {
+        hero.nextElementSibling?.scrollIntoView({ behavior: behavior(), block: 'start' })
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <div className="overflow-x-hidden">
+    // overflow-x-clip (not -hidden): -hidden creates a scroll container and kills position:sticky
+    <div className="overflow-x-clip">
       <>
-        {/* Hero */}
-        <section ref={heroRef} className="relative min-h-[100dvh] flex items-center pt-24 pb-16">
-          {/* Decorative images */}
-          <div className="absolute left-[16%] md:left-[-5%] top-[-2%] -rotate-45">
-            <img
-              src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318535/landing_dec3.png"
-              alt=""
-              className="w-28 md:w-45 lg:w-60 opacity-80 pointer-events-none select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite]"
-            />
-          </div>
-          <div className="absolute right-[30%] md:right-[30%] top-[30%] rotate-[-12deg]">
-            <img
-              src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318534/landing_dec2.png"
-              alt=""
-              className="w-24 md:w-36 lg:w-44 opacity-85 pointer-events-none select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite_1s]"
-            />
-          </div>
-          <div className="absolute right-[40px] md:right-[60px] bottom-[-30px] rotate-[10deg]">
-            <img
-              src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318534/landing_dec1.png"
-              alt=""
-              className="w-40 md:w-52 lg:w-64 opacity-80 pointer-events-none select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite_2s]"
-            />
+        {/* Hero: dec group scrolls up (normal flow at top), content pinned on top (sticky z-10)
+            for 2/3 viewport. The 2/3 snap is two-way — see the scroll effect above — so on
+            scroll-back it jumps to the hero head where the decs sit at their initial position. */}
+        <section ref={heroRef} className="relative h-[166dvh]">
+          {/* Decorative images — one group, positions unchanged */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[100dvh]">
+            <div className="absolute left-[16%] md:left-[-5%] top-[-2%] -rotate-45">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318535/landing_dec3.png"
+                alt=""
+                className="w-28 md:w-45 lg:w-60 opacity-80 select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite]"
+              />
+            </div>
+            <div className="absolute right-[30%] md:right-[30%] top-[30%] rotate-[-12deg]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318534/landing_dec2.png"
+                alt=""
+                className="w-24 md:w-36 lg:w-44 opacity-85 select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite_1s]"
+              />
+            </div>
+            <div className="absolute right-[40px] md:right-[60px] bottom-[-30px] rotate-[10deg]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dbq76uhcf/image/upload/v1789318534/landing_dec1.png"
+                alt=""
+                className="w-40 md:w-52 lg:w-64 opacity-80 select-none drop-shadow-lg animate-[floatDec_4s_ease-in-out_infinite_2s]"
+              />
+            </div>
           </div>
 
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="sticky top-0 z-10 flex h-[100dvh] items-center pt-24 pb-16">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-gray-500">
                 Giải pháp đóng gói thông minh
@@ -100,6 +149,7 @@ export default function HomePage() {
                   Xem sản phẩm →
                 </Link>
               </div>
+            </div>
             </div>
           </div>
         </section>
