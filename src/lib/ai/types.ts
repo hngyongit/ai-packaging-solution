@@ -22,8 +22,6 @@ export type RecommendInput = {
   weightGrams: number
   desiredQuantity: number
   hasPrinting: boolean
-  printFaces?: '2_main' | '4_sides'
-  hasDesignFile?: boolean
   // Khách ghi thêm yêu cầu/điều kiện (≤100 chữ) — AI phải cân nhắc như một phần input.
   notes?: string
 }

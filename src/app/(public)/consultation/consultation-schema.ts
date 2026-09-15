@@ -17,19 +17,14 @@ export const consultationSchema = z
     heightCm: z.coerce.number({ invalid_type_error: 'Chiều cao không hợp lệ' }).positive('Nhập chiều cao (cm)').max(9999),
     weightGrams: z.coerce.number({ invalid_type_error: 'Trọng lượng không hợp lệ' }).positive('Nhập trọng lượng (g)').max(999999),
     desiredQuantity: z.coerce.number({ invalid_type_error: 'Số lượng không hợp lệ' }).int().positive('Nhập số lượng thùng').max(1000000),
+    // Vị trí in + logo KHÔNG hỏi ở đây: kiểu thùng do AI chọn nên danh sách mặt
+    // in hợp lệ chỉ biết được ở màn kết quả (PrintMockupPanel).
     hasPrinting: z.boolean(),
-    printFaces: z.enum(['2_main', '4_sides']).optional(),
-    hasDesignFile: z.boolean().optional(),
     notes: z
       .string()
       .trim()
       .refine((v) => v === '' || v.trim().split(/\s+/).length <= 100, 'Ghi chú tối đa 100 chữ')
       .optional(),
-  })
-  .superRefine((val, ctx) => {
-    if (val.hasPrinting && !val.printFaces) {
-      ctx.addIssue({ path: ['printFaces'], code: 'custom', message: 'Chọn số mặt in' })
-    }
   })
 
 export type ConsultationFormValues = z.infer<typeof consultationSchema>
@@ -43,7 +38,5 @@ export const consultationToInput = (values: ConsultationFormValues) => ({
   weightGrams: values.weightGrams,
   desiredQuantity: values.desiredQuantity,
   hasPrinting: values.hasPrinting,
-  printFaces: values.hasPrinting ? values.printFaces : undefined,
-  hasDesignFile: values.hasPrinting ? values.hasDesignFile : undefined,
   notes: values.notes?.trim() || undefined,
 })

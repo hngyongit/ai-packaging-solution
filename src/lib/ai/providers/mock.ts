@@ -73,10 +73,10 @@ export class MockProvider implements AIProvider {
       estimatedTotalMin: round2(unitMin * input.desiredQuantity),
       estimatedTotalMax: round2(unitMax * input.desiredQuantity),
       moq: 500,
+      // Vị trí in chọn ở màn kết quả (theo kiểu thùng AI đã chọn), nên ở đây
+      // chỉ khuyến nghị chung.
       printingRecommendation: input.hasPrinting
-        ? `In ${input.printFaces === '4_sides' ? '2 mặt chính + 2 mặt phụ' : '2 mặt chính'}${
-            input.hasDesignFile ? '' : ' — khách chưa có file thiết kế, cần gửi logo để lên mockup.'
-          }`
+        ? 'In logo thương hiệu lên thùng — chọn vị trí in và xem mockup ngay bước tiếp theo.'
         : 'Không in — thùng trơn, tiết kiệm chi phí.',
       leadTimeDays: 18,
       advice: input.notes

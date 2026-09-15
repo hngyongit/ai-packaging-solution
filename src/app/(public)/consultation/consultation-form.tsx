@@ -38,14 +38,11 @@ export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] })
       weightGrams: undefined,
       desiredQuantity: undefined,
       hasPrinting: false,
-      printFaces: undefined,
-      hasDesignFile: undefined,
       notes: '',
     },
   })
 
   const hasPrinting = watch('hasPrinting')
-  const hasDesignFile = watch('hasDesignFile')
   const chosenBoxStyle = watch('boxStyle')
   const chosenPreviewUrl = chosenBoxStyle
     ? boxStyles.find((style) => style.id === chosenBoxStyle)?.previewUrl
@@ -65,6 +62,7 @@ export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] })
         status: 'ready',
         consultationId: data.consultationId,
         recommendation: data.recommendation as AIRecommendation,
+        hasPrinting: values.hasPrinting,
       })
     } catch (error) {
       setResult({ status: 'error', message: error instanceof Error ? error.message : 'Không thể kết nối. Vui lòng thử lại.' })
@@ -147,33 +145,12 @@ export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] })
                       { value: 'false', label: 'Không' },
                     ]}
                   />
+                  {hasPrinting && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      Sau khi AI trả kết quả, bạn upload logo và chọn vị trí in để xem ảnh mockup thực tế.
+                    </p>
+                  )}
                 </div>
-
-                {hasPrinting && (
-                  <div className="space-y-4">
-                    <Field label="Số mặt in" required error={errors.printFaces?.message}>
-                      <RadioGroup
-                        value={watch('printFaces')}
-                        onChange={(next) => setValue('printFaces', next, { shouldValidate: true })}
-                        options={[
-                          { value: '2_main', label: '2 mặt chính' },
-                          { value: '4_sides', label: '2 mặt chính + 2 mặt phụ' },
-                        ]}
-                      />
-                    </Field>
-                    <div>
-                      <Label className="mb-2 text-sm font-medium text-gray-700">Đã có file logo/thiết kế chưa?</Label>
-                      <RadioGroup
-                        value={hasDesignFile}
-                        onChange={(next) => setValue('hasDesignFile', next === 'true')}
-                        options={[
-                          { value: 'true', label: 'Đã có' },
-                          { value: 'false', label: 'Chưa có' },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                )}
               </Section>
 
               <Section title="Ghi chú thêm">

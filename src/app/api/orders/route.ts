@@ -71,6 +71,8 @@ const dimensionsSchema = z.object({
   width: z.coerce.number().positive(),
   height: z.coerce.number().positive(),
   layers: z.coerce.number().int().positive().optional(),
+  // Kiểu thùng từ tư vấn AI — zod strip key chưa khai báo nên phải mở ở đây.
+  boxStyleId: z.string().trim().max(40).optional(),
 })
 
 const orderItemSchema = z.object({

@@ -16,8 +16,14 @@ export type ConsultationRow = {
   product_weight: number | null
   desired_quantity: number | null
   has_printing: boolean | null
+  print_faces: string | null
+  logo_url: string | null
   preferred_layers: number | null
   flute_type: string | null
+  // Có thể undefined nếu migration 20260915000000 chưa push.
+  mockup_url?: string | null
+  dieline_url?: string | null
+  mockup_requests?: number | null
   purchase_frequency: string | null
   ai_recommendation: AIRecommendation | null
   ai_suggested_product_id: string | null
@@ -42,8 +48,6 @@ export const consultationInputSchema = z.object({
   preferredLayers: z.enum(['3', '5']).optional(),
   fluteType: z.string().trim().max(100).optional(),
   hasPrinting: z.boolean(),
-  printFaces: z.enum(['2_main', '4_sides']).optional(),
-  hasDesignFile: z.boolean().optional(),
   notes: z
     .string()
     .trim()
@@ -69,8 +73,7 @@ export async function createConsultation(input: ConsultationInput): Promise<{ id
       preferred_layers: input.preferredLayers ? Number(input.preferredLayers) : null,
       flute_type: input.fluteType ?? null,
       has_printing: input.hasPrinting,
-      print_faces: input.hasPrinting ? (input.printFaces ?? null) : null,
-      has_design_file: input.hasPrinting ? (input.hasDesignFile ?? null) : null,
+      // print_faces / logo_url điền sau, khi khách gen mockup ở màn kết quả.
       notes: input.notes ?? null,
     })
     .select('id')
@@ -94,6 +97,46 @@ export async function updateAIRecommendation(id: string, recommendation: AIRecom
     })
     .eq('id', id)
   if (error) throw new Error(`Failed to update consultation: ${error.message}`)
+}
+
+/**
+ * Xin 1 lượt gen mockup. CAS trên `mockup_requests` để hai request song song
+ * không cùng vượt hạn mức — hết hạn mức trả false (route dịch ra 429).
+ */
+export async function requestMockupSlot(id: string, max: number): Promise<boolean> {
+  const admin = await createAdminClient()
+  const { data, error } = await admin.from('consultations').select('mockup_requests').eq('id', id).maybeSingle()
+  if (error) throw new Error(`Failed to read mockup slot: ${error.message}`)
+  const used = Number(data?.mockup_requests ?? 0)
+  if (used >= max) return false
+
+  // .eq() trên cột vừa đọc → 2 request song song chỉ một bên claim được.
+  const applied = await admin
+    .from('consultations')
+    .update({ mockup_requests: used + 1 })
+    .eq('id', id)
+    .eq('mockup_requests', used)
+    .select('id')
+  if (applied.error) throw new Error(`Failed to claim mockup slot: ${applied.error.message}`)
+  return (applied.data?.length ?? 0) > 0
+}
+
+export async function updateMockupAssets(
+  id: string,
+  assets: { printFaces: string; logoUrl: string; mockupUrl?: string | null; dielineUrl: string },
+): Promise<void> {
+  const admin = await createAdminClient()
+  const { error } = await admin
+    .from('consultations')
+    .update({
+      print_faces: assets.printFaces,
+      logo_url: assets.logoUrl,
+      // Không truyền → giữ nguyên ảnh cũ (lượt gen AI hỏng không được xoá mockup đã đạt).
+      ...(assets.mockupUrl === undefined ? {} : { mockup_url: assets.mockupUrl }),
+      dieline_url: assets.dielineUrl,
+    })
+    .eq('id', id)
+  if (error) throw new Error(`Failed to save mockup assets: ${error.message}`)
 }
 
 export async function getConsultation(id: string): Promise<ConsultationRow | null> {

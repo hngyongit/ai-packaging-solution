@@ -24,7 +24,18 @@ export default async function ConsultationResultPage({
     return <ErrorCard message="Không tìm thấy kết quả tư vấn. Vui lòng thử lại." />
   }
 
-  return <ConsultationResult recommendation={consultation.ai_recommendation} />
+  return (
+    <ConsultationResult
+      recommendation={consultation.ai_recommendation}
+      consultationId={consultation.id}
+      hasPrinting={Boolean(consultation.has_printing)}
+      initialMockup={{
+        logoUrl: consultation.logo_url,
+        mockupUrl: consultation.mockup_url ?? null,
+        dielineUrl: consultation.dieline_url ?? null,
+      }}
+    />
+  )
 }
 
 function ErrorCard({ message }: { message: string }) {

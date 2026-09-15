@@ -3,6 +3,7 @@ import { ArrowRight, Clock, Package, Receipt } from '@phosphor-icons/react/dist/
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -143,6 +144,8 @@ export function OrderCard({
   const progress = getOrderProgress(order.status)
   const canReorder = showReorder && canReorderOrder(order.status)
   const canCancel = canCustomerCancelOrder(order.status)
+  // Mockup lưu trên dòng đầu tiên (handoff từ tư vấn AI luôn là item[0]).
+  const mockupItem = order.order_items[0]
 
   return (
     <Card className="rounded-lg">
@@ -169,6 +172,11 @@ export function OrderCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {mockupItem ? (
+          <div className="border-b border-gray-100 pb-3">
+            <PrintPreviewStrip item={mockupItem} />
+          </div>
+        ) : null}
         <div className="h-2 overflow-hidden rounded-full bg-gray-100">
           <div
             className={cn('h-full rounded-full', order.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-600')}
