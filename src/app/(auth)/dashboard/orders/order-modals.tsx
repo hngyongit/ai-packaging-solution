@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { OrderForm } from "@/app/(public)/order/order-form"
 import { type ProductOption } from "@/app/(public)/order/order-types"
+import { PrintPreviewStrip } from "@/components/order/print-preview-strip"
 import { buttonVariants } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -106,6 +107,9 @@ function OrderQuickViewModal({
                     <p className="font-medium text-gray-950">{item.product_name}</p>
                     <p className="text-xs text-gray-500">{item.product_code}</p>
                     <p className="mt-1 text-sm text-gray-600">{formatDimensions(item.dimensions)}</p>
+                    <div className="mt-2">
+                      <PrintPreviewStrip item={item} />
+                    </div>
                   </div>
                   <div className="shrink-0 text-left sm:text-right">
                     <p className="text-sm text-gray-600">Số lượng {item.quantity}</p>

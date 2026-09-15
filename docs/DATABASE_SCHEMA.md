@@ -135,8 +135,14 @@ CREATE TABLE consultations (
   desired_quantity INT,                           -- Number of boxes needed
   has_printing BOOLEAN NOT NULL DEFAULT FALSE,
   printing_notes TEXT,
+  print_faces TEXT
+    CHECK (print_faces IN ('2_main', '4_sides', '1_top') OR print_faces IS NULL),
   logo_url TEXT,                                  -- Uploaded logo/design file (Supabase Storage)
   reference_image_url TEXT,                       -- Reference image
+  -- Print mockup assets (migration 20260915000000)
+  mockup_url TEXT,                                -- AI mockup image (Cloudinary)
+  dieline_url TEXT,                               -- Die-cut SVG with printed artwork (Cloudinary)
+  mockup_requests INT NOT NULL DEFAULT 0,          -- Chi phí gen đã dùng, chặn lặp API
   budget DECIMAL(12,2),
   delivery_deadline DATE,
   notes TEXT,

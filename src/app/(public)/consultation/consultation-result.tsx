@@ -1,20 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { CaretDown, CheckCircle, Lightbulb, Package, PiggyBank, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, Lightbulb, Package, PiggyBank, ShieldCheck } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { type AIRecommendation } from '@/lib/ai/types'
 
+import { Alternatives } from './consultation-alternatives'
+import { PrintMockupPanel, EMPTY_MOCKUP, type MockupAssets } from './print-mockup-panel'
 import { StepIndicator } from './step-indicator'
 
 const vnd = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 
-export function ConsultationResult({ recommendation }: { recommendation: AIRecommendation }) {
-  const [showAlternatives, setShowAlternatives] = useState(false)
+export function ConsultationResult({
+  recommendation,
+  consultationId,
+  hasPrinting = false,
+  initialMockup = EMPTY_MOCKUP,
+}: {
+  recommendation: AIRecommendation
+  consultationId?: string
+  hasPrinting?: boolean
+  initialMockup?: MockupAssets
+}) {
+  const [mockupUrl, setMockupUrl] = useState<string | null>(initialMockup.mockupUrl)
+  const [mockupStatus, setMockupStatus] = useState('idle')
   const r = recommendation
   const stars = Math.round(r.confidence * 5)
+  // Chặn đặt hàng tới khi có mockup; 503 (chưa cấu hình AI) thì không chặn.
+  const blockedByMockup = hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl
 
   return (
     <section className="bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
@@ -112,45 +127,43 @@ export function ConsultationResult({ recommendation }: { recommendation: AIRecom
               <span className="text-amber-400">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</span>
               <span>{Math.round(r.confidence * 100)}%</span>
             </div>
-          </div>
-        </div>
 
-        {/* Alternatives */}
-        {r.alternatives.length > 0 && (
-          <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
-            <button
-              type="button"
-              onClick={() => setShowAlternatives((open) => !open)}
-              className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Xem các lựa chọn khác ({r.alternatives.length})
-              <CaretDown className={`h-4 w-4 transition-transform ${showAlternatives ? 'rotate-180' : ''}`} />
-            </button>
-            {showAlternatives && (
-              <div className="space-y-3 border-t border-gray-200 p-4">
-                {r.alternatives.map((alt, index) => (
-                  <div key={index} className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
-                    <div className="text-sm">
-                      <p className="font-medium text-gray-900">{alt.boxType}</p>
-                      <p className="text-gray-500">Carton {alt.layers} lớp</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <p className="font-semibold text-blue-600">{vnd(alt.estimatedUnitPriceMin)}-{vnd(alt.estimatedUnitPriceMax)}</p>
-                      <p className="text-gray-500">{Math.round(alt.confidence * 100)}% khớp</p>
-                    </div>
-                  </div>
-                ))}
+            {hasPrinting && consultationId && (
+              <div className="mt-6">
+                <PrintMockupPanel
+                  consultationId={consultationId}
+                  boxStyleId={r.boxStyleId ?? undefined}
+                  initial={initialMockup}
+                  onAssetsChange={(assets, status) => {
+                    setMockupUrl(assets.mockupUrl)
+                    setMockupStatus(status)
+                  }}
+                />
               </div>
             )}
           </div>
-        )}
+        </div>
+
+        <div className="mt-4">
+          <Alternatives alternatives={r.alternatives} />
+        </div>
 
         {/* Actions */}
         <div className="mt-6 space-y-3">
-          <Button size="lg" className="w-full" onClick={() => window.location.assign('/order')}>
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={blockedByMockup}
+            onClick={() =>
+              window.location.assign(consultationId ? `/order?consultation=${consultationId}` : '/order')
+            }
+          >
             <Package className="h-4 w-4" />
             Đặt hàng ngay
           </Button>
+          {blockedByMockup && (
+            <p className="text-center text-xs text-gray-500">Tạo ảnh mockup để tiếp tục đặt hàng.</p>
+          )}
           <Button size="lg" variant="ghost" className="w-full" onClick={() => window.location.assign('/dashboard')}>
             <PiggyBank className="h-4 w-4" />
             Lưu để sau

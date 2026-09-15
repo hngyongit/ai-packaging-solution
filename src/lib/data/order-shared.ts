@@ -135,6 +135,24 @@ export function formatDateTime(value: string | null | undefined) {
   }).format(new Date(value))
 }
 
+/** Ảnh mockup AI + khuôn bế có hình in, lưu trong order_items.printing_specs (JSONB). */
+export function getMockupUrl(item: Pick<OrderItem, 'printing_specs'>) {
+  return readAssetUrl(item.printing_specs?.mockupUrl)
+}
+
+export function getDielineUrl(item: Pick<OrderItem, 'printing_specs'>) {
+  return readAssetUrl(item.printing_specs?.dielineUrl)
+}
+
+export function getPrintPositionLabel(item: Pick<OrderItem, 'printing_specs'>) {
+  const value = item.printing_specs?.printPositionLabel
+  return typeof value === 'string' && value ? value : null
+}
+
+function readAssetUrl(value: unknown) {
+  return typeof value === 'string' && value.startsWith('https://') ? value : null
+}
+
 export function getItemSummary(order: Pick<CustomerOrder, 'order_items'>) {
   if (order.order_items.length === 0) return 'Chưa có sản phẩm'
 

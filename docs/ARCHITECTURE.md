@@ -317,22 +317,30 @@ Staff ──► PATCH /api/orders/[id]/status ──► Route Handler
 └──────────┘     └──────────────────┘     └──────────────┘
 ```
 
-### 4.2 Mockup Rendering (Image Generation / Canvas)
+### 4.2 Print Mockup (ai-box image edits + Cloudinary)
+
+Chỉ chạy khi khách chọn in. Server dựng khuôn bế có hình in bằng SVG thuần
+(`src/lib/dieline`), rồi gọi ai-box `/v1/images/edits` (JSON native, 2 ảnh input =
+ảnh mockup gốc của kiểu thùng + logo khách) để ra ảnh 3D. URL ảnh AI hết hạn sau
+24h nên server tải bytes về và re-host lên Cloudinary ngay.
 
 ```
-┌──────────┐     ┌──────────────────┐     ┌──────────────┐
-│  Browser  │     │  Route Handler    │     │  Image API    │
-│           │     │                   │     │  (FAL/... )   │
-│  Upload   │────►│  1. Receive file  │     │              │
-│  logo +   │     │  2. Upload to     │────►│  Generate     │
-│  specs    │     │     Supabase       │     │  mockup       │
-│           │     │     Storage        │◄────│              │
-│           │◄────│  3. Return mockup  │     │              │
-│  Preview  │     │     URL            │     │              │
-└──────────┘     └──────────────────┘     └──────────────┘
+Browser ──POST /api/ai/mockup──► Route Handler (lib/mockup/*)
+  { consultationId,                │ 1. validate + ownership, claim slot DB
+    printPosition, file|logoUrl }  │ 2. build dieline+artwork SVG ─► Cloudinary
+                                   │ 3. ai-box edits [baseImg, logo] ─► PNG url
+                                   │ 4. download PNG ─► Cloudinary
+                                   │ 5. persist mockup_url/dieline_url/print_faces
+  ◄── { logoUrl, mockupUrl, ────────┘
+       dielineUrl, printPosition }
 ```
 
-**Alternative — Client-side mockup**: Use a canvas library (html2canvas, Fabric.js) directly in the browser. No server needed for simple mockups.
+- Hạn mức chi phí: cột `consultations.mockup_requests` (CAS update, mặc định 3/lượt).
+- Vị trí in hợp lệ theo kiểu thùng: `src/lib/config/print-positions.ts`.
+- Khi "Đặt hàng ngay", `mockupUrl`/`dielineUrl` copy vào `order_items.printing_specs`
+  (JSONB, không cần migration) → UI đơn hàng hiện thumbnail qua `PrintPreviewStrip`.
+- Không có rasterizer: dieline lưu SVG gốc (`<image>` nhúng data URI logo), browser
+  và xưởng die-cut đều đọc được.
 
 ---
 

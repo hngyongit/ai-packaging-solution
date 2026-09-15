@@ -6,6 +6,7 @@ import { ArrowClockwise, CheckCircle, WarningCircle } from '@phosphor-icons/reac
 
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -154,6 +155,9 @@ export default function ReorderForm({ selectedOrder, recentOrders }: ReorderForm
                     <p className="font-medium text-foreground">{item.product_name}</p>
                     <p className="text-sm text-muted-foreground">{item.product_code}</p>
                     <p className="mt-2 text-sm text-muted-foreground">{formatCurrency(item.unit_price)} / sản phẩm</p>
+                    <div className="mt-3">
+                      <PrintPreviewStrip item={item} />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`qty-${item.id}`}>Số lượng</Label>

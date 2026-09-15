@@ -9,6 +9,7 @@ import {
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import {
   canCustomerCancelOrder,
@@ -78,11 +79,14 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               {order.order_items.map((item) => (
                 <div key={item.id} className="rounded-lg border border-gray-200 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium text-foreground">{item.product_name}</p>
                       <p className="text-sm text-muted-foreground">{item.product_code}</p>
                       <p className="mt-2 text-sm text-muted-foreground">{formatDimensions(item.dimensions)}</p>
                       {item.notes ? <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p> : null}
+                      <div className="mt-3">
+                        <PrintPreviewStrip item={item} size="md" />
+                      </div>
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-sm text-muted-foreground">Số lượng {item.quantity}</p>

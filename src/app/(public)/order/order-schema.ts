@@ -7,6 +7,8 @@ export const itemSchema = z.object({
   width: z.coerce.number().positive('Vui lòng nhập chiều rộng'),
   height: z.coerce.number().positive('Vui lòng nhập chiều cao'),
   layers: z.coerce.number().int().positive().optional(),
+  // Kiểu thùng AI chọn (chỉ có qua handoff tư vấn) — khách không nhập tay.
+  boxStyleId: z.string().optional(),
   hasPrinting: z.boolean(),
   itemNotes: z.string().trim().max(500).optional(),
 })

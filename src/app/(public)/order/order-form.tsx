@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 
 import { OrderItems } from './order-items'
 import { emptyItem, orderSchema, type OrderFormValues } from './order-schema'
+import { PrintHandoffNotice } from './print-handoff-notice'
 import {
   ArtworkSection,
   AuthNotice,
@@ -22,14 +23,16 @@ import {
 } from './order-sections'
 import { OrderSummary } from './order-summary'
 import { type CreatedOrder, type ProductOption, type UploadResult } from './order-types'
-import { getDefaultLayer } from './order-utils'
+import { defaultItems, getDefaultLayer, printingSpecsFor } from './order-utils'
+import { type PrintHandoff } from '@/lib/mockup/handoff'
 
 type OrderFormProps = {
   products: ProductOption[]
+  printHandoff?: PrintHandoff | null
   variant?: 'page' | 'modal'
 }
 
-export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
+export function OrderForm({ products, printHandoff = null, variant = 'page' }: OrderFormProps) {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
   const [serverError, setServerError] = useState('')
   const [uploadError, setUploadError] = useState('')
@@ -42,7 +45,7 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
-      items: [{ ...emptyItem, productId: products[0]?.id ?? '', layers: getDefaultLayer(products[0]) }],
+      items: defaultItems(products, printHandoff),
       paymentMethod: 'cod',
       deliveryMethod: 'delivery',
       contactName: '',
@@ -105,15 +108,20 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: values.items.map((item) => ({
+          items: values.items.map((item, index) => ({
             productId: item.productId,
             quantity: item.quantity,
-            dimensions: { length: item.length, width: item.width, height: item.height, layers: item.layers },
-            printingSpecs: item.hasPrinting
-              ? { hasPrinting: true, fileUrl: uploadedFile?.url ?? null, filePath: uploadedFile?.path ?? null }
-              : undefined,
+            dimensions: {
+              length: item.length,
+              width: item.width,
+              height: item.height,
+              layers: item.layers,
+              boxStyleId: item.boxStyleId,
+            },
+            printingSpecs: printingSpecsFor(item.hasPrinting, uploadedFile, index === 0 ? printHandoff : null),
             notes: item.itemNotes,
           })),
+          consultationId: printHandoff?.consultationId,
           paymentMethod: values.paymentMethod,
           contactName: values.contactName,
           contactPhone: values.contactPhone,
@@ -158,6 +166,7 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
       {variant === 'page' ? <Header /> : null}
       <AuthNotice isAuthed={isAuthed} />
       <CatalogNotice hasProducts={products.length > 0} />
+      {printHandoff && <PrintHandoffNotice handoff={printHandoff} />}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <OrderItems
           items={items}
@@ -198,6 +207,7 @@ export function OrderForm({ products, variant = 'page' }: OrderFormProps) {
             <Header />
             <AuthNotice isAuthed={isAuthed} />
             <CatalogNotice hasProducts={products.length > 0} />
+            {printHandoff && <PrintHandoffNotice handoff={printHandoff} />}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <OrderItems
                 items={items}
