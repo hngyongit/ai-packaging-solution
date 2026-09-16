@@ -95,4 +95,31 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Scroll reveal. Landing page roots its blocks under .reveal-init (JS-rendered
+     div), so content stays fully visible if JS never runs. The observer adds
+     .is-visible per block once it enters the viewport. */
+  .reveal-init .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 1s ease,
+      transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-init .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  /* Reduced motion: keep the fade (opacity is not movement), drop the slide.
+     A blanket opt-out here was hiding the animation entirely for users whose
+     OS sets reduce (Win11 "animation effects" off, remote desktop, battery saver). */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-init .reveal {
+      transform: none;
+      transition: opacity 1s ease;
+    }
+    .reveal-init .reveal.is-visible {
+      transform: none;
+    }
+  }
 }
