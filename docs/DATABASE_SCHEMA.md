@@ -7,28 +7,25 @@
 
 ## 1. Entity Relationship Overview
 
+> Nguồn thật: `supabase/migrations/*.sql` (6 file). Có **9 bảng**, không có `consultation_items`.
+
 ```
-profiles (1) ──────< consultations (N) ──────< consultation_items (N)
-    │                                                  │
-    │                                                  │ (FK: product_suggestion)
-    │                                                  ▼
-    │                                            products
+                    box_styles (lookup, TEXT id: rsc_a1|am_duong|mailer)
+                          │  (được tham chiếu bằng chuỗi, không có FK)
+                          ▼
+profiles (1) ──< consultations (N) ── ai_suggested_product_id ──> products
+    │                    │
+    │                    │ (orders.consultation_id — đơn sinh ra từ tư vấn)
+    │                    ▼
+    ├──────────< orders (N) ──< order_items (N) ── product_id ──> products
+    │                 │              └── printing_specs JSONB (mockup_url, dieline_url, printPositionLabel)
+    │                 └──< order_status_history (N)
     │
-    │ (1)                                   (FK: customer_id)
-    ├──────< orders (N) ──────< order_items (N)
-    │           │                       │
-    │           │                       │ (FK: product_id)
-    │           │                       ▼
-    │           │                 products
-    │           │
-    │           │ (FK: customer_id)
-    │           ▼
-    │     order_status_history (N)
-    │
-    ├──────< saved_products (N)     (customer's saved products)
-    │
-    └──────< reorder_templates (N)   (saved reorder presets)
+    ├──< saved_products (N)
+    └──< reorder_templates (N)
 ```
+
+`consultations` và `orders` tham chiếu `profiles` bằng `customer_id UUID REFERENCES profiles(id)`. Một số `consultations.customer_id` **NULL** (tư vấn ẩn danh — xem `docs/USER_FLOWS.md`).
 
 ---
 
@@ -131,8 +128,16 @@ CREATE TABLE consultations (
   product_width DECIMAL(8,2),                     -- cm
   product_height DECIMAL(8,2),                    -- cm
   product_weight DECIMAL(8,2),                    -- grams
-  quantity_per_box INT,                           -- Items per box
+  quantity_per_box INT,                           -- Items per box  (⚠️ form UI đã bỏ field này — schema vẫn giữ)
   desired_quantity INT,                           -- Number of boxes needed
+  -- Extra carton-spec inputs (migration 20260910000000)
+  preferred_layers INT,                           -- Khách gợi ý số lớp (nullable — AI tự quyết)
+  flute_type TEXT,
+  has_design_file BOOLEAN,
+  purchase_frequency TEXT
+    CHECK (purchase_frequency IN ('once', 'periodic', 'continuous') OR purchase_frequency IS NULL),
+  box_style TEXT                                  -- Kiểu thùng khách chọn (20260910010000,
+    CHECK (box_style IN ('rsc_a1','am_duong','mailer') OR box_style IS NULL),   -- thu hẹp ở 20260913000000)
   has_printing BOOLEAN NOT NULL DEFAULT FALSE,
   printing_notes TEXT,
   print_faces TEXT
@@ -389,28 +394,78 @@ CREATE POLICY "reorder_templates_customer_all"
   USING (auth.uid() = customer_id);
 ```
 
+### 2.9 box_styles
+
+Lookup table cho 3 kiểu thùng. Source của ảnh preview/mockup hiển thị trong form tư vấn và khi enrich kết quả AI.
+
+```sql
+CREATE TABLE public.box_styles (
+  id TEXT PRIMARY KEY,             -- 'rsc_a1' | 'am_duong' | 'mailer'
+  label TEXT NOT NULL,
+  preview_url TEXT NOT NULL,       -- ảnh preview kiểu thùng (hover card) — Cloudinary
+  mockup_url TEXT NOT NULL,        -- ảnh mockup thành phẩm — Cloudinary
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE public.box_styles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "box_styles_public_select" ON public.box_styles FOR SELECT
+  USING (is_active = TRUE);
+CREATE POLICY "box_styles_admin_all" ON public.box_styles FOR ALL
+  USING (auth.jwt() ->> 'role' = 'admin');
+```
+
+Seed: 3 dòng (`rsc_a1`, `am_duong`, `mailer`), `ON CONFLICT (id) DO NOTHING`.
+`consultations.box_style` có CHECK constraint khớp đúng 3 id này — thêm kiểu thùng mới thì phải sửa constraint luôn.
+
+> Data access: `src/lib/data/boxes.ts` (`getBoxStyles()`, `getBoxStyleMap()`) — có **fallback static** khớp seed, nên app vẫn chạy khi chưa push migration.
+> Mapping sang engine khuôn bế: `BOX_STYLE_TO_DIELINE` (`rsc_a1→rsc`, `am_duong→telescope`, `mailer→mailer`) trong `src/lib/dieline/index.ts`.
+
 ---
 
-## 3. Storage Buckets (Supabase Storage)
+## 3. File Storage — HAI đường, đừng nhầm
 
-| Bucket | Visibility | Purpose |
+Ảnh trong app nằm ở hai nơi khác nhau, tùy file do ai tạo ra:
+
+### 3.1 Supabase Storage — file do USER upload
+
+Qua `POST /api/upload` (`src/app/api/upload/route.ts`), route này **yêu cầu đã đăng nhập**.
+
+| Bucket | Visibility | Purpose (upload purpose) |
 |---|---|---|
-| `logos` | Public (read) | Customer uploaded logos / design files |
-| `mockups` | Public (read) | Generated mockup preview images |
-| `product-images` | Public (read) | Product catalog images |
-| `order-files` | Authenticated | Production files, artwork |
+| `logos` | Public (read) | `logo`, `reference` — logo/app thiết kế khách tải lên |
+| `order-files` | Signed URL, hết hạn 1h | `payment-proof`, `order-file` — cần `orderId` |
+
+Giới hạn: 5–10MB tùy purpose, whitelist MIME + phần mở rộng.
+
+### 3.2 Cloudinary — ảnh do SERVER sinh ra
+
+Mockup in + khuôn bế có hình in **không** đi qua `/api/upload`, không nằm trong Supabase Storage. Server upload trực tiếp bằng `src/lib/cloudinary/upload.ts` và lưu URL vào `consultations.mockup_url` / `dieline_url`, sau đó hand-off sang `order_items.printing_specs`.
+
+| Chế độ | Điều kiện | Hành vi |
+|---|---|---|
+| **Signed** (mặc định) | có `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` | HMAC-SHA1 trên `folder/public_id/timestamp`, `overwrite=true` |
+| **Unsigned** | đặt thêm `CLOUDINARY_UPLOAD_PRESET` | Gửi preset, không ký — đường vòng cho lỗi 401 ở tài khoản Cloudinary mới |
+
+Thiếu cấu hình → `CloudinaryNotConfigured` → `/api/ai/mockup` trả **503**, UI ẩn tính năng mockup và **không** chặn đặt hàng.
+
+> ⚠️ Ảnh preview của `box_styles` và ảnh AI sinh ra đang display bằng `<img>` thô, không phải `next/image`: `next.config.mjs` mới whitelist `picsum.photos` trong `images.remotePatterns`. Muốn dùng `next/image` thì thêm `res.cloudinary.com` (và host Supabase) vào trước.
 
 ---
 
 ## 4. Realtime Subscriptions
 
-Enable Realtime on:
+> **CHƯA BẬT / CHƯA DÙNG.** Không có đoạn code nào trong `src/` tạo Supabase realtime channel. Bảng dưới là **định hướng**, không phải hiện trạng.
 
 | Table | Reason |
 |---|---|
 | `orders` | Customer sees status updates live |
 | `order_status_history` | Status change feed |
 | `consultations` | Sales team sees new consultations |
+
+Hiện tại UI cập nhật trạng thái bằng **refetch khi load trang** (Server Components + `loading.tsx` skeletons).
 
 ---
 

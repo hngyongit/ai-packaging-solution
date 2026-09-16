@@ -10,7 +10,7 @@
 **EXE201** — AI Carton Packaging Solution Platform.
 A web app where customers input product specs → AI recommends box type/size/material → place order → staff confirms price → factory produces.
 
-**Stack**: Next.js 14+ (App Router) + Supabase (DB, Auth, Storage) + TailwindCSS.
+**Stack**: Next.js 14+ (App Router) + Supabase (DB, Auth) + TailwindCSS + ai-box (OpenAI-compatible) + Cloudinary (image storage).
 **No backend server** — Next.js Route Handlers (`app/api/*`) serve as the backend.
 **Closest reference**: A form-based consultation app (not a chat app).
 
@@ -97,27 +97,27 @@ Design Read: Landing page for manufacturing B2B buyers, with a clean industrial 
 ```
 src/
 ├── app/                     # Routes only — no business logic
-│   ├── (public)/            # Landing, consultation, about, login, register
-│   │   ├── page.tsx
-│   │   ├── consultation/
+│   ├── (public)/            # Landing, consultation, about, pricing, order, dieline-lab
+│   │   ├── page.tsx         # Landing
+│   │   ├── consultation/    # AI form + result + print-mockup (step=query param)
 │   │   │   └── result/
 │   │   ├── order/           # Standalone order (without AI)
+│   │   ├── dieline-lab/     # Khuôn bế (dieline) preview
 │   │   ├── about/
 │   │   └── pricing/
+│   ├── (guest)/             # login/, register/ — redirect away if authed
 │   ├── (auth)/              # Customer pages (login required)
-│   │   ├── login/
-│   │   ├── register/
 │   │   └── dashboard/
 │   │       ├── orders/[id]/
 │   │       ├── history/
 │   │       ├── reorder/
 │   │       └── profile/
 │   ├── (staff)/             # Staff-only pages
-│   │   ├── dashboard/
-│   │   ├── consultations/[id]/
-│   │   ├── orders/[id]/
-│   │   ├── customers/
-│   │   └── products/
+│   │   └── staff/
+│   │       ├── consultations/[id]/
+│   │       ├── orders/[id]/
+│   │       ├── customers/
+│   │       └── products/
 │   └── api/                 # Route Handlers (thin layer, delegates to lib/data/)
 │       ├── ai/recommend/
 │       ├── ai/mockup/
@@ -130,20 +130,24 @@ src/
 │       └── reorder/
 ├── features/                # Self-contained feature modules
 │   ├── consultation/        # components/, hooks/, utils.ts, types.ts
-│   ├── orders/
-│   ├── products/
-│   ├── auth/
-│   └── staff/
+│   ├── dieline/             # DielinePreview.tsx (khuôn bế UI)
+│   └── products/            # CatalogTable, PriceTierCards, types, utils
 ├── components/              # Shared components only
-│   ├── ui/                  # shadcn/ui primitives (Button, Input, Card, etc.)
-│   └── layout/              # Header, Footer, Sidebar
+│   ├── ui/                  # shadcn primitives (Button, Input, Card, Modal, etc.)
+│   ├── layout/              # navbar, footer, DashboardNav, StaffSidebar
+│   ├── modals/              # PascalCase modals (PaymentConfirmation, CancelOrder, ...)
+│   └── order/               # print-preview-strip
 └── lib/                     # Shared infrastructure
     ├── data/                # All Supabase queries (single source of truth)
-    ├── ai/                  # AI provider abstraction (OpenAI, etc.)
-    │   └── providers/       # openai.ts, mock.ts
-    ├── config/              # Feature flags, pricing rules, constants
+    ├── ai/                  # AI provider abstraction (providers/openai.ts, providers/mock.ts)
+    ├── dieline/             # Khuôn bế engine (index.ts, print-faces.ts) — pure, no React
+    ├── mockup/              # Mockup in: request/generate/handoff
+    ├── cloudinary/          # Server-side signed/unsigned image upload
+    ├── images/              # dimensions helpers
+    ├── config/              # features, pricing, constants, print-positions
     └── supabase/            # Browser + Server clients
 ```
+
 
 ### Coding Conventions
 - **TypeScript strict** — no `any`

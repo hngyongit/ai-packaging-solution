@@ -8,10 +8,12 @@
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Framework** | Next.js 14+ (App Router) | Fullstack — server components + API routes |
+| **Framework** | Next.js 14.2 (App Router) | Fullstack — server components + API routes |
 | **Styling** | TailwindCSS | Utility-first CSS, consistent design system |
-| **Database & Auth** | Supabase | PostgreSQL DB, Auth, Storage, Realtime |
-| **AI/LLM** | OpenAI API (or equivalent) | Box spec recommendation, consultation logic |
+| **Database & Auth** | Supabase | PostgreSQL DB, Auth, Storage (file upload) |
+| **UI primitives** | `@base-ui/react` + shadcn (style `base-nova`) | `src/components/ui/` — KHÔNG phải Radix |
+| **AI/LLM** | ai-box (OpenAI-compatible) qua SDK `openai` v7 | Text recommendation (`deepseek-v4-flash-0731`) + ảnh mockup in (`/v1/images/edits`, `qwen-image-3.0`) |
+| **Ảnh thành phẩm** | Cloudinary | Mockup in + khuôn bế có hình in, upload server-side |
 | **Deployment** | Vercel (recommended) | Next.js-native hosting, edge-ready |
 
 ### No separate backend server
@@ -22,167 +24,52 @@ Next.js Route Handlers (`app/api/*`) serve as the backend. No Express/Fastify/No
 
 ## 2. Folder Structure
 
+> **Single source of truth cho cây thư mục đầy đủ: `GETSTARTED.md` §4.** Ở đây chỉ giữ quy ước tổ chức — cây thư mục chi tiết dễ lỗi thời hơn bất kỳ mục nào khác trong docs.
+
 ```
-AI_Packaging_solution/
-├── docs/                          # Project documentation
-│   ├── DEVELOPMENT_GUIDE.md       # ← This file
-│   ├── ARCHITECTURE.md
-│   ├── DATABASE_SCHEMA.md
-│   ├── UI_RULES.md
-│   ├── SRS.md
-│   └── USER_FLOWS.md
-│
-├── src/
-│   ├── app/                       # Next.js App Router (routes only — no business logic)
-│   │   ├── (public)/              # Route group — public pages (no auth)
-│   │   │   ├── page.tsx           # Landing page (hero, how it works, catalog, trust)
-│   │   │   ├── consultation/      # AI consultation step 1: spec input
-│   │   │   │   └── result/        # AI consultation step 2: recommendation display
-│   │   │   ├── order/             # Place order (from consultation or manual)
-│   │   │   ├── about/             # Factory info, trust building
-│   │   │   └── pricing/           # Pricing guide (optional)
-│   │   │
-│   │   ├── (auth)/                # Route group — authenticated pages
-│   │   │   ├── login/
-│   │   │   ├── register/
-│   │   │   └── dashboard/         # Customer portal
-│   │   │       ├── page.tsx       # Dashboard overview (stats, quick actions)
-│   │   │       ├── orders/        # My orders list
-│   │   │       │   └── [id]/      # Order detail + tracking
-│   │   │       ├── history/       # Order history
-│   │   │       ├── reorder/       # Reorder from past orders
-│   │   │       └── profile/       # Customer profile
-│   │   │
-│   │   ├── (staff)/               # Route group — staff (sales/admin) only
-│   │   │   ├── dashboard/         # Staff overview (stats, new consults, pending orders)
-│   │   │   ├── consultations/     # Review & confirm AI recommendations
-│   │   │   │   └── [id]/          # Consultation detail + confirm price
-│   │   │   ├── orders/            # All orders management
-│   │   │   │   └── [id]/          # Order detail + update status
-│   │   │   ├── customers/         # Customer list
-│   │   │   └── products/          # Product catalog management
-│   │   │
-│   │   ├── api/                   # Route Handlers (thin layer — delegates to lib/data)
-│   │   │   ├── auth/              # Auth endpoints
-│   │   │   ├── ai/
-│   │   │   │   ├── recommend/route.ts   # → delegates to features/consultation
-│   │   │   │   └── mockup/route.ts      # → delegates to features/consultation
-│   │   │   ├── consultations/route.ts   # → delegates to lib/data/consultations
-│   │   │   ├── orders/route.ts          # → delegates to lib/data/orders
-│   │   │   │   ├── [id]/status/route.ts # → delegates to lib/data/orders
-│   │   │   │   └── [id]/payment/route.ts# → delegates to lib/data/orders
-│   │   │   ├── products/route.ts        # → delegates to lib/data/products
-│   │   │   ├── upload/route.ts          # → delegates to lib/data/upload
-│   │   │   └── reorder/route.ts         # → delegates to lib/data/orders
-│   │   │
-│   │   ├── layout.tsx             # Root layout
-│   │   └── globals.css            # Global styles + Tailwind
-│   │
-│   ├── features/                  # ← FEATURE MODULES (self-contained, loosely coupled)
-│   │   ├── consultation/          # Consultation + AI recommendation feature
-│   │   │   ├── components/
-│   │   │   │   ├── SpecInputForm.tsx
-│   │   │   │   ├── RecommendationCard.tsx
-│   │   │   │   └── MockupPreview.tsx
-│   │   │   ├── hooks/
-│   │   │   │   └── useConsultation.ts
-│   │   │   ├── utils.ts           # Feature-specific business logic
-│   │   │   └── types.ts
-│   │   │
-│   │   ├── orders/                # Order management feature
-│   │   │   ├── components/
-│   │   │   │   ├── OrderForm.tsx
-│   │   │   │   ├── OrderCard.tsx
-│   │   │   │   ├── OrderStatusTimeline.tsx
-│   │   │   │   └── PaymentForm.tsx
-│   │   │   ├── hooks/
-│   │   │   │   └── useOrders.ts
-│   │   │   ├── utils.ts
-│   │   │   └── types.ts
-│   │   │
-│   │   ├── products/              # Product catalog feature
-│   │   │   ├── components/
-│   │   │   ├── utils.ts
-│   │   │   └── types.ts
-│   │   │
-│   │   ├── auth/                  # Auth feature
-│   │   │   ├── components/
-│   │   │   │   ├── LoginForm.tsx
-│   │   │   │   └── RegisterForm.tsx
-│   │   │   ├── hooks/
-│   │   │   │   └── useAuth.ts
-│   │   │   └── utils.ts
-│   │   │
-│   │   └── staff/                 # Staff dashboard feature
-│   │       ├── components/
-│   │       │   ├── ConsultationReview.tsx
-│   │       │   ├── OrderStatusUpdater.tsx
-│   │       │   └── StaffStats.tsx
-│   │       ├── hooks/
-│   │       └── utils.ts
-│   │
-│   ├── components/                # SHARED components (reusable across features)
-│   │   ├── ui/                    # Base primitives (Button, Input, Card, Badge, Table, Modal...)
-│   │   └── layout/                # Shared layout (Header, Footer, Sidebar)
-│   │
-│   ├── lib/                       # Shared infrastructure
-│   │   ├── supabase/
-│   │   │   ├── client.ts          # Browser client (anon key + RLS)
-│   │   │   └── server.ts          # Server client (service_role)
-│   │   │
-│   │   ├── data/                  # ← DATA ACCESS LAYER (single source of truth for DB ops)
-│   │   │   ├── consultations.ts   # Consultation CRUD — all Supabase queries here
-│   │   │   ├── orders.ts          # Order CRUD — all Supabase queries here
-│   │   │   ├── products.ts        # Product queries
-│   │   │   ├── profiles.ts        # Profile queries
-│   │   │   └── upload.ts          # File upload helpers
-│   │   │
-│   │   ├── ai/                    # ← AI PROVIDER ABSTRACTION (swap providers easily)
-│   │   │   ├── client.ts          # Factory: creates the right provider
-│   │   │   ├── types.ts           # AIProvider interface (contract)
-│   │   │   └── providers/
-│   │   │       ├── openai.ts      # OpenAI implementation
-│   │   │       └── mock.ts        # Mock provider for testing
-│   │   │
-│   │   ├── config/                # ← CONFIGURATION (feature flags, constants)
-│   │   │   ├── features.ts        # Feature flags (toggle on/off)
-│   │   │   ├── pricing.ts         # Pricing rules (thresholds, deposit %)
-│   │   │   └── constants.ts       # App-wide constants
-│   │   │
-│   │   └── utils.ts               # Generic helpers
-│   │
-│   ├── hooks/                     # Shared hooks (cross-feature)
-│   │   └── useMediaQuery.ts
-│   │
-│   └── types/                     # Shared types (database-generated)
-│       └── database.ts            # Supabase-generated types
-│
-├── supabase/
-│   ├── migrations/                # Database migrations
-│   └── seed.sql                   # Seed data
-│
-├── public/                        # Static assets
-│   ├── images/
-│   └── fonts/
-│
-├── .env.local                     # Local environment variables (gitignored)
-├── .env.example                   # Environment template
-├── tailwind.config.ts
-├── next.config.ts
-├── tsconfig.json
-├── package.json
-└── README.md
+src/
+├── middleware.ts                  # Gate theo pathname (login), KHÔNG check role
+├── app/                           # ROUTES ONLY — không business logic
+│   ├── (public)/                  # / , about, pricing, consultation, dieline-lab, order
+│   ├── (guest)/                   # login, register
+│   ├── (auth)/dashboard/          # orders/[id], history, reorder, profile
+│   ├── (staff)/staff/             # ⚠️ toàn bộ đang render <UnderDevelopmentPage/>
+│   ├── api/                       # Route Handlers — thin, delegate xuống lib/data
+│   └── globals.css                # Design tokens (oklch CSS vars) + reveal utilities
+├── features/                      # Feature modules (self-contained)
+│   ├── dieline/DielinePreview.tsx
+│   └── products/                  # CatalogTable, PriceTierCards, types, utils
+├── components/
+│   ├── ui/                        # primitives (base-ui + shadcn, style base-nova)
+│   ├── layout/  modals/  order/   # PascalCase cho shared component
+├── lib/
+│   ├── supabase/                  # client.ts (browser) · server.ts (createClient / createAdminClient)
+│   ├── data/                      # ← DATA ACCESS: consultations, orders, order-shared, products, boxes
+│   ├── ai/                        # index.ts (factory) · types.ts · mockup.ts · context.md (prompt) · providers/
+│   ├── dieline/                   # engine mm→SVG (index.ts, print-faces.ts) — thuần, không React
+│   ├── mockup/                    # request · generate · handoff — điều độ gen ảnh mockup
+│   ├── cloudinary/                # upload server-side (signed / preset)
+│   ├── images/                    # dimensions.ts
+│   └── config/                    # features · pricing · constants · print-positions
+└── types/database.ts
+
+scripts/                           # seed.mjs · dieline-selfcheck.mts · mockup-selfcheck.mts
+supabase/                          # config.toml · migrations/ (KHÔNG có seed.sql)
+components.json                    # shadcn CLI (style base-nova, iconLibrary phosphor)
 ```
+
+**Những thứ các bản doc cũ nhắc tới nhưng KHÔNG tồn tại:** `src/hooks/`, `src/features/{orders,auth,staff}/`, `src/features/consultation/` (folder rỗng — component thật nằm ở `src/app/(public)/consultation/`), `lib/data/{profiles,upload}.ts`, `lib/ai/client.ts`, `supabase/seed.sql`, `public/`, `next.config.ts` (thật là `.mjs`), `docs/SRS.md`.
 
 ### Key design principles
 
 | Principle | What it means | How it's enforced |
 |---|---|---|
-| **Feature isolation** | Each feature is self-contained in `features/` | Adding a new feature = create `features/new-feature/`, add routes in `app/`, add data functions in `lib/data/` — never touch existing code |
-| **Data access layer** | All DB queries go through `lib/data/` | Route Handlers call `lib/data/` functions, never `supabase.from()` directly. Schema changes = update only `lib/data/` |
-| **Provider abstraction** | AI providers are swappable | `lib/ai/client.ts` returns a provider that implements the `AIProvider` interface. Swap OpenAI → Claude = new file in `providers/`, change config |
-| **Configuration-driven** | Business rules live in config, not code | `lib/config/pricing.ts` holds thresholds, deposit %. Change pricing = edit config, not business logic |
-| **Thin routes** | `app/api/*` only parse requests and delegate | Route Handlers validate input, call `lib/data/`, return response — no business logic
+| **Feature isolation** | UI chuyên biệt của 1 screen nằm cạnh screen đó (`app/(public)/consultation/`); thứ dùng chung nhiều nơi mới lên `features/` hoặc `components/` | Thêm feature = tạo folder mới + route + hàm trong `lib/data/` — không sửa code cũ |
+| **Data access layer** | Mọi DB query đi qua `lib/data/` | Route Handlers gọi `lib/data/`, không `supabase.from()` trực tiếp. Đổi schema = chỉ sửa `lib/data/` + types |
+| **Provider abstraction** | AI provider đổi được | `src/lib/ai/index.ts` (`getAIProvider()`) chọn theo env: có `AI_API_KEY` (khác placeholder) → `OpenAIProvider`, không có → `MockProvider`. Thêm provider = file mới trong `providers/` + 1 nhánh ở `getAIProvider()`. ⚠️ Interface `AIProvider` chỉ cover text recommendation — tạo ảnh mockup (`lib/ai/mockup.ts`) là đường riêng, đổi provider KHÔNG đổi mockup |
+| **Configuration-driven** | Business rule nằm trong config | `lib/config/pricing.ts` (ngưỡng cọc), `print-positions.ts` (vùng in theo kiểu thùng), `constants.ts` (labels) |
+| **Thin routes** | `app/api/*` chỉ parse + delegate | Validate bằng zod → gọi `lib/data/` → trả response — không business logic |
+| **Pure geometry** | Khuôn bế tính toán thuần, không DOM/IO | `lib/dieline/` gọi được từ route handler, test được bằng `scripts/dieline-selfcheck.mts` |
 
 ---
 
@@ -192,7 +79,7 @@ AI_Packaging_solution/
 
 - **Language**: TypeScript everywhere — strict mode
 - **Components**: Use `export default function` for page components, named exports for shared components
-- **File naming**: `kebab-case.tsx` for files, `PascalCase` for component names
+- **File naming** (theo thực tế repo): shared/presentational component → `PascalCase.tsx` (`src/components/modals/PriceChange.tsx`, `src/features/dieline/DielinePreview.tsx`); file cục bộ nằm cạnh page + primitive `components/ui/` → `kebab-case.tsx` (`consultation-form.tsx`, `ui/badge.tsx`); hook/util/type → `camelCase.ts`. Tên component luôn PascalCase.
 - **CSS**: Tailwind utility classes — no CSS modules unless absolutely necessary
 - **Imports**: Group order — React → Next.js → Third-party → Local
 
@@ -228,50 +115,43 @@ Does the component need:
 
 ### API Route Handlers
 
-```tsx
-// app/api/ai/recommend/route.ts
+Pattern thật — validate bằng zod, delegate xuống `lib/data/`. Không dùng `createRouteHandlerClient`; server helper là `createClient()` / `createAdminClient()` từ `@/lib/supabase/server`.
+
+```ts
+// app/api/ai/recommend/route.ts — public endpoint, KHÔNG gate auth
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { consultationInputSchema } from '@/lib/data/consultations'
+import { getAIProvider } from '@/lib/ai'
 
 export async function POST(request: NextRequest) {
-  // 1. Auth check
-  const supabase = createRouteHandlerClient({ cookies: () => cookies() })
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // 2. Parse request
-  const body = await request.json()
-
-  // 3. Business logic — call AI, query DB, calculate
-  const recommendation = await getBoxRecommendation(body)
-
-  // 4. Return
-  return NextResponse.json(recommendation)
+  const parsed = consultationInputSchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: parsed.error.flatten() },
+      { status: 400 },
+    )
+  }
+  const { id } = await createConsultation(parsed.data)      // lưu phôi trước khi gọi AI
+  const recommendation = await getAIProvider().recommend(parsed.data, catalog)
+  await updateAIRecommendation(id, recommendation)
+  return NextResponse.json({ id, recommendation })
 }
 ```
+
+Route nào cần session thì tự check và trả 401 (`src/app/api/upload/route.ts`). Route cần role thì đọc `profiles.role` bằng service client rồi tự enforce (`isStaff()` trong `src/app/api/orders/[id]/status/route.ts`) — middleware chỉ check đã login, không check role.
 
 ### Supabase client — two-tier pattern
 
 ```typescript
-// lib/supabase/client.ts — Browser (public)
+// src/lib/supabase/client.ts — Browser: anon key + RLS
 import { createBrowserClient } from '@supabase/ssr'
-export const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
-// lib/supabase/server.ts — Server (admin)
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-export function createClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,  // 🔒 NEVER exposed to browser
-    { cookies: { get: (key) => cookieStore.get(key)?.value } }
-  )
-}
+// src/lib/supabase/server.ts — Server, HAI factory trong 1 file
+export async function createClient()        // anon key + cookies → đi qua RLS
+export async function createAdminClient()   // SUPABASE_SERVICE_ROLE_KEY → bypass RLS
 ```
+
+Thiếu env → `server.ts` ném `Error('NEXT_PUBLIC_SUPABASE_URL is not set')` chứ không fallback im lặng. `createAdminClient()` tắt `autoRefreshToken`/`persistSession` vì không có session browser.
 
 ---
 
@@ -288,6 +168,18 @@ export function createClient() {
 | API data file (`lib/data/*.ts`) | **300 lines** | Keep focused on one entity |
 
 **Exception**: Config files, auto-generated types, migrations — no limit.
+
+**Vượt ngưỡng đã biết (repo hiện tại)** — targets, không phải chuẩn mực:
+
+| File | Lines | Lý do |
+|---|---|---|
+| `src/lib/dieline/index.ts` | 669 | Engine port từ `dieline.js`, giữ 1 file để đối chiếu byte-by-byte với `scripts/dieline-selfcheck.mts` |
+| `src/features/dieline/DielinePreview.tsx` | 428 | Viewer + controls + downloads; tách được khi UI ổn định |
+| `src/app/(public)/page.tsx` | 386 | Landing — từng section tách thành component được |
+| `src/app/api/reorder/route.ts` | 384 | Cần xuống `lib/data/` |
+| `src/app/api/orders/route.ts` | 341 | Cần xuống `lib/data/` |
+
+→ Khi đụng các file này: không phình thêm; tách hoặc move logic xuống `lib/data/`.
 
 ### 4.2 Reuse before creating new
 
@@ -358,9 +250,16 @@ Before creating a new component, hook, or utility:
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase client | ✅ Public (safe) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client | ✅ Public (safe) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | 🔒 Secret |
-| `OPENAI_API_KEY` | Server only | 🔒 Secret |
-| `NEXT_PUBLIC_SITE_URL` | SEO, OG images | ✅ Public |
+| `SUPABASE_SERVICE_ROLE_KEY` | `createAdminClient()` | 🔒 Secret |
+| `AI_API_KEY` | `getAIProvider()`, `lib/ai/mockup.ts` — thiếu thì fallback `MockProvider` | 🔒 Secret |
+| `AI_BASE_URL` | AI endpoint, default `https://api.ai-box.vn/v1` | 🔒 Secret-adjacent |
+| `AI_MODEL` | Text model, default `deepseek-v4-flash-0731` | Public |
+| `AI_IMAGE_MODEL` | Mockup image model, default `qwen-image-3.0` | Public |
+| `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | `lib/cloudinary/upload.ts` (signed) | 🔒 Secret |
+| `CLOUDINARY_UPLOAD_PRESET` | Tùy chọn — đặt vào → upload unsigned, bỏ HMAC | 🔒 Secret |
+| `NEXT_PUBLIC_SITE_URL` | ⚠️ có trong `.env.example` nhưng **code chưa đọc** | ✅ Public |
+
+`.env.example` là danh sách biến thật — nguồn chuẩn nếu doc này và code lệch nhau.
 
 ---
 
@@ -409,16 +308,14 @@ Since the team works with AI-generated code:
 | Library | Purpose | When to use |
 |---|---|---|
 | **TailwindCSS** | Utility-first styling | All styling — no CSS modules |
-| **shadcn/ui** | Copy-paste Tailwind components (Button, Input, Dialog, Table, etc.) | Base UI primitives in `components/ui/` |
-| **Lucide React** | Icon library (built into shadcn) | All icons |
+| **`@base-ui/react`** | Primitive nền tảng cho `components/ui/` | Button/Select/Dialog thật bên dưới — KHÔNG phải Radix |
+| **shadcn** (CLI + dep) | Sinh component theo style `base-nova` | Cấu hình ở `components.json`; `npx shadcn@latest add <tên>` |
+| **`tw-animate-css`** | Animation utility classes | Đã cài |
+| **`@phosphor-icons/react`** | Icon library chính (`iconLibrary: "phosphor"`) | Mọi icon mới. Trong Server Component: deep import `@phosphor-icons/react/dist/ssr` |
 
-**Note**: shadcn/ui is NOT a dependency — it's copy-paste. You own the code. Install individual components:
-```bash
-npx shadcn@latest add button
-npx shadcn@latest add card
-npx shadcn@latest add dialog
-# etc.
-```
+Primitive hiện có trong `src/components/ui/`: `button, input, select, textarea, label, card, badge, modal, separator, status-badge, status-timeline, empty-state, error-state, FadeIn`. **Không có** `table`/`form`/`dialog` — bảng tự viết ở `src/features/products/components/CatalogTable.tsx`, modal là `modal.tsx` (wrap Dialog của base-ui).
+
+⚠️ `shadcn` **là dependency thật** (`package.json`), không còn "copy-paste rồi xoá". `lucide-react` còn sót trong `package.json` + đúng 1 file (`components/ui/select.tsx`) — không thêm chỗ mới.
 
 ### 8.2 State Management
 
@@ -427,16 +324,12 @@ npx shadcn@latest add dialog
 | **Server state** (DB data) | React Server Components + Supabase | No client cache needed. Fetch on server, render HTML |
 | **Form state** | React Hook Form + Zod | Performant, minimal re-renders, built-in validation |
 | **Global UI state** (auth, theme) | React Context (lightweight) | One context for auth, one for theme. No Redux |
-| **URL state** (consultation step) | `useSearchParams()` | Step persists in URL — shareable, back-button safe |
-| **Complex client state** (future) | Zustand (only if needed) | Only add if Server Components + Context isn't enough |
+| **URL state** | `useSearchParams()` — bộ lọc/modal đơn hàng (`?modal=create`, `?orderId=` ở `order-modals.tsx`; `?status&page&search` ở `history/page.tsx`), `?id=` cho trang kết quả tư vấn, `?consultation=` cho print handoff | Shareable, back-button safe |
+| **Complex client state** (future) | Zustand (only if needed) | Chưa cài. Chỉ thêm nếu Server Components + Context không đủ |
 
-```bash
-# Form handling
-npm install react-hook-form @hookform/resolvers zod
+⚠️ **Không còn "consultation step" trong URL.** Tư vấn là MỘT trang: form cột trái, kết quả AI + panel mockup render inline ở cột phải (`consultation-form.tsx`, `consultation-live-result.tsx`). Bản full-page chia sẻ được là route riêng `/consultation/result?id=`. Doc cũ mô tả `?step=result` / `?step=mockup` — **route đó không tồn tại**.
 
-# Zustand (only if needed later)
-npm install zustand
-```
+Semantic state của đơn hàng dùng helper trong `src/lib/data/order-shared.ts` (`canReorderOrder`, `canCustomerCancelOrder`, `getOrderProgress`) — đừng tái dựng điều kiện status trong JSX.
 
 ### 8.3 Form Validation
 
@@ -445,72 +338,45 @@ npm install zustand
 | **Zod** | Schema validation | Define types + validators in one place |
 | **@hookform/resolvers** | Bridge Zod → React Hook Form | `resolver={zodResolver(schema)}` |
 
-```typescript
-import { z } from 'zod'
+Schema có sẵn — **import, đừng định nghĩa lại**:
 
-export const consultationSchema = z.object({
-  productType: z.string().min(1, 'Required'),
-  productLength: z.number().min(1, 'Min 1cm').max(200, 'Max 200cm'),
-  productWidth: z.number().min(1).max(200),
-  productHeight: z.number().min(1).max(200),
-  productWeight: z.number().min(1).max(50000),
-  quantity: z.number().min(1, 'Min 1 box'),
-  hasPrinting: z.boolean(),
-  phone: z.string().regex(/^0[0-9]{9}$/, 'Invalid phone'),
-})
+| Form | Client schema | Server schema |
+|---|---|---|
+| Tư vấn | `src/app/(public)/consultation/consultation-schema.ts` | `consultationInputSchema` trong `src/lib/data/consultations.ts` |
+| Đặt hàng | `src/app/(public)/order/order-schema.ts` | validate trong `src/app/api/orders/route.ts` |
 
-export type ConsultationInput = z.infer<typeof consultationSchema>
-```
+Field thật của form tư vấn (`consultation-schema.ts`): `productType`, `boxStyle` (optional enum — bỏ trống để AI tự chọn), `lengthCm`, `widthCm`, `heightCm`, `weightGrams`, `desiredQuantity`, `hasPrinting`, `notes` (≤100). Kích thước dùng `z.coerce.number()` vì input HTML trả string.
+
+Quy ước: mọi schema số lượng/kích thước khai báo `coerce` + `.positive()` + `.max()` rõ ràng, message tiếng Việt.
 
 ### 8.4 Utility Libraries
 
-| Library | Purpose | Install |
-|---|---|---|
-| **clsx** | Conditional class names | `npm install clsx` |
-| **tailwind-merge** | Merge Tailwind classes without conflicts | `npm install tailwind-merge` |
-| **date-fns** | Date formatting & manipulation | `npm install date-fns` |
-| **recharts** | Charts for staff dashboard | `npm install recharts` |
+TẤT CẢ đã ở `package.json` — **không cần `npm install`**, chỉ `npm install` một lần khi mới clone.
 
-**Recommended utility wrapper**:
+| Library | Purpose | Trạng thái |
+|---|---|---|
+| **clsx** + **tailwind-merge** | `cn()` helper | ✅ đã cài |
+| **date-fns** | Date formatting | ✅ đã cài |
+| **@phosphor-icons/react** | Icons | ✅ đã cài |
+| **motion** + **tw-animate-css** | Animation | ✅ đã cài |
+| **openai** v7 | SDK gọi endpoint OpenAI-compatible (ai-box) | ✅ đã cài |
+| **@base-ui/react** + **shadcn** | UI primitives | ✅ đã cài |
+| **tsx** | Chạy `scripts/*.mts` | ✅ đã cài (dev) |
+| **recharts** | Biểu đồ staff dashboard | ❌ chưa cài — chỉ thêm khi làm UI staff thật |
+| **zustand** | Client state phức tạp | ❌ chưa cài |
+| **lucide-react** | ⚠️ còn sót, dùng ở đúng 1 file (`components/ui/select.tsx`) — không mở rộng |
+
+**Utility wrapper** (`src/lib/utils.ts`):
 ```typescript
-// lib/utils.ts
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(amount)
-}
-
-export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(date))
-}
 ```
 
-### 8.5 When to install each library
-
-```
-MVP Phase 1 (Week 1-2):
-  npm install clsx tailwind-merge
-  npx shadcn@latest add button input card select table dialog badge
-
-MVP Phase 2 (Week 3-4):
-  npm install react-hook-form @hookform/resolvers zod date-fns
-  npx shadcn@latest add form
-
-Staff Dashboard (Week 5-6):
-  npm install recharts
-```
+Formatting tiền/ngày **không** nằm ở `lib/utils.ts` — dùng `src/lib/data/order-shared.ts`: `formatCurrency` (VND, `Intl.NumberFormat('vi-VN')`), `formatDateTime` (`timeZone: 'Asia/Ho_Chi_Minh'`), `toNumber` (numeric DECIMAL trả về dạng string từ Supabase).
 
 ### 8.7 Libraries we explicitly DON'T use
 
@@ -528,43 +394,58 @@ Staff Dashboard (Week 5-6):
 ## 9. Development Setup
 
 ```bash
-# 1. Install
+# 1. Install (một lần — mọi dependency đã ở package.json)
 npm install
-npx shadcn@latest add button input card select table dialog badge form
 
 # 2. Environment
 cp .env.example .env.local
-# Fill in Supabase URL + keys, OpenAI key
+# Điền SUPABASE_* (bắt buộc), AI_API_KEY (tuỳ chọn — thiếu thì chạy MockProvider),
+# CLOUDINARY_* (tuỳ chọn — thiếu thì UI ẩn tính năng mockup)
 
-# 3. Supabase local (optional)
-npx supabase start
+# 3. Database — BẮT BUỘC, nếu không thì không login được (test account tạo bởi seed.mjs)
+npx supabase login
+npx supabase link --project-ref <ref>
+npx supabase db push        # 6 migration: schema + RLS + products + box_styles + print mockup
+npm run db:seed             # 3 tài khoản test + 1 consultation + 1 order
 
 # 4. Run
-npm run dev
+npm run dev                 # next dev --turbo
+
+# 5. (tuỳ chọn) Self-check gate cho luồng dieline/mockup
+npx tsx scripts/dieline-selfcheck.mts
+npx tsx scripts/mockup-selfcheck.mts
 ```
+
+Không cần `npx shadcn add` cho setup ban đầu — primitive đã commit trong `src/components/ui/`.
 
 ---
 
 ## 10. Deployment
 
 - **Platform**: Vercel (recommended for Next.js)
-- **Environment variables**: Set in Vercel dashboard
-- **Supabase**: Use Supabase production project
+- **Environment variables**: set all of §5 in Vercel dashboard. Thiếu `SUPABASE_SERVICE_ROLE_KEY` → mọi route ghi hình. Thiếu `AI_API_KEY` → app vẫn chạy nhưng trả kết quả mock. Thiếu `CLOUDINARY_*` → `/api/ai/mockup` trả 503, UI tự ẩn mockup (đặt hàng vẫn được).
+- **Supabase**: use Supabase production project, `npx supabase db push` trước khi deploy
 - **Build**: `npm run build` — vercel auto-detects Next.js
+- **⚠️ Images**: `next.config.mjs` chỉ whitelist `picsum.photos` trong `images.remotePatterns`. Ảnh Cloudinary/Supabase hiện render bằng `<img>` thô (`src/components/order/print-preview-strip.tsx`). Muốn dùng `next/image` → thêm `res.cloudinary.com` + host Supabase vào `remotePatterns` trước khi deploy.
 
 ---
 
 ## 11. Quality Checklist Before Merge
 
 - [ ] No `console.log` left in production code
-- [ ] No API keys in client-side code
-- [ ] RLS policies enabled on all tables
+- [ ] No API keys in client-side code — key AI/Cloudinary chỉ đọc trong file server, không `NEXT_PUBLIC_`
+- [ ] Không hard-code `https://api.ai-box.vn` — luôn đọc `AI_BASE_URL`
+- [ ] RLS policies enabled on all tables (migration mới có bảng = có policy)
+- [ ] Route handler dùng `createAdminClient()` phải tự check `profiles.role` / ownership (nó bypass RLS)
 - [ ] TypeScript strict mode — no `any` types
-- [ ] File within size limits (200 lines component, 80 lines route handler)
+- [ ] File within size limits (200 lines component, 80 lines route handler) — xem §4.1 cho ngoại lệ đã biết
 - [ ] No duplicate code — checked existing components/data first
 - [ ] Early return for error/edge cases
 - [ ] One responsibility per component
-- [ ] Tailwind classes follow UI_RULES.md conventions
+- [ ] Tailwind classes follow UI_RULES.md conventions (semantic tokens, không palette raw mới)
 - [ ] Mobile-responsive (Tailwind breakpoints)
-- [ ] Loading states for async operations
+- [ ] Loading states for async operations (`loading.tsx` skeleton)
 - [ ] Error boundaries for user-facing components
+- [ ] `npx tsx scripts/dieline-selfcheck.mts` xanh — nếu sửa `src/lib/dieline/`
+- [ ] `npx tsx scripts/mockup-selfcheck.mts` xanh — nếu sửa `src/lib/mockup/`, `src/lib/ai/mockup.ts`, `src/lib/config/print-positions.ts`
+- [ ] Schema đổi → có file trong `supabase/migrations/` + cập nhật `docs/DATABASE_SCHEMA.md` + `src/types/database.ts`
