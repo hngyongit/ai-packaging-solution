@@ -7,7 +7,7 @@
 
 ## 1. Entity Relationship Overview
 
-> Nguồn thật: `supabase/migrations/*.sql` (6 file). Có **9 bảng**, không có `consultation_items`.
+> Nguồn thật: `supabase/migrations/*.sql` (14 file). Có **10 bảng**, không có `consultation_items`.
 
 ```
                     box_styles (lookup, TEXT id: rsc_a1|am_duong|mailer)
@@ -18,10 +18,13 @@ profiles (1) ──< consultations (N) ── ai_suggested_product_id ──> pr
     │                    │ (orders.consultation_id — đơn sinh ra từ tư vấn)
     │                    ▼
     ├──────────< orders (N) ──< order_items (N) ── product_id ──> products
+    │                 │              ├── is_custom (TRUE = gia công, không trừ kho)
     │                 │              └── printing_specs JSONB (mockup_url, dieline_url, printPositionLabel)
     │                 └──< order_status_history (N)
     │
     ├──< saved_products (N)
+    ├──< customer_addresses (N)          (sổ địa chỉ; 1 dòng is_default mỗi khách)
+    ├──< cart_items (N) ── product_id ──> products   (kind 'stock'|'custom'; custom mang spec JSONB riêng)
     └──< reorder_templates (N)
 ```
 
@@ -44,6 +47,7 @@ CREATE TABLE profiles (
   phone TEXT,
   company_name TEXT,
   address TEXT,
+  default_address TEXT,        -- địa chỉ mặc định trên hồ sơ (20260919050000); /dashboard/profile đọc/ghi cột này
   tax_code TEXT,             -- Mã số thuế (B2B customers)
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -89,6 +93,8 @@ CREATE TABLE products (
   base_price DECIMAL(12,2),              -- Base price per unit
   price_tier_min_qty INT,                -- Min quantity for this price tier
   unit TEXT NOT NULL DEFAULT 'unit',      -- 'unit', 'm2'
+  stock_quantity INTEGER                  -- NULL = không theo dõi (gia công theo yêu cầu);
+    CHECK (stock_quantity IS NULL OR stock_quantity >= 0),  --   NOT NULL = hàng có sẵn trong kho
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   image_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -239,6 +245,7 @@ CREATE TABLE orders (
   delivery_fee DECIMAL(12,2) DEFAULT 0,
   expected_production_date DATE,
   expected_delivery_date DATE,
+  stock_deducted BOOLEAN NOT NULL DEFAULT FALSE,  -- Cờ idempotency cho deduct_order_stock (migration 20260919000000)
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -285,6 +292,7 @@ CREATE TABLE order_items (
   quantity INT NOT NULL,
   unit_price DECIMAL(12,2) NOT NULL,
   subtotal DECIMAL(14,2) NOT NULL,
+  is_custom BOOLEAN NOT NULL DEFAULT FALSE,      -- TRUE = gia công theo yêu cầu; product_id chỉ là neo giá → RPC kho bỏ qua
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -350,10 +358,12 @@ CREATE TABLE saved_products (
   customer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,                            -- Customer's label: "Coffee box A4"
   product_id UUID REFERENCES products(id),
-  custom_dimensions JSONB,                       -- { length, width, height, layers }
-  printing_specs JSONB,                          -- { colors, positions, file_url }
+  custom_dimensions JSONB,                       -- { length, width, height, layers, fluteType, quantity }
+  printing_specs JSONB,                          -- { hasPrinting, printPositionLabel, mockupUrl, dielineUrl }
   logo_url TEXT,
   notes TEXT,
+  box_style_id TEXT,                             -- kiểu thùng đã lưu (rsc_a1 | am_duong | mailer) — mig 20260919030000
+  source_consultation_id UUID REFERENCES consultations(id) ON DELETE SET NULL, -- provenance: phiên tư vấn sinh ra mẫu
   last_ordered_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -367,6 +377,8 @@ CREATE POLICY "saved_products_customer_all"
   ON saved_products FOR ALL
   USING (auth.uid() = customer_id);
 ```
+
+> "Lưu làm mẫu" từ kết quả tư vấn AI → `POST /api/saved-products` (đăng nhập bắt buộc); import vào `/dashboard/custom` qua `GET /api/saved-products`. Data access: `src/lib/data/saved-products.ts` (admin client + lọc `customer_id`, 23505 trùng tên → 409). Lưu kèm gán `consultations.customer_id` cho tư vấn ẩn danh.
 
 ### 2.8 reorder_templates
 
@@ -422,6 +434,85 @@ Seed: 3 dòng (`rsc_a1`, `am_duong`, `mailer`), `ON CONFLICT (id) DO NOTHING`.
 
 > Data access: `src/lib/data/boxes.ts` (`getBoxStyles()`, `getBoxStyleMap()`) — có **fallback static** khớp seed, nên app vẫn chạy khi chưa push migration.
 > Mapping sang engine khuôn bế: `BOX_STYLE_TO_DIELINE` (`rsc_a1→rsc`, `am_duong→telescope`, `mailer→mailer`) trong `src/lib/dieline/index.ts`.
+
+---
+
+### 2.10 cart_items
+
+Giỏ hàng theo user (migration `20260919000000` + `20260919020000` + `20260919055000`). Đăng nhập bắt buộc. Hai loại dòng: `kind='stock'` cộng dồn mỗi SKU, `kind='custom'` luôn là dòng riêng vì mỗi quy cách một line.
+
+```sql
+CREATE TABLE public.cart_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'stock' CHECK (kind IN ('stock','custom')),
+  custom JSONB,                        -- quy cách dòng custom: { length,width,height,layers,boxStyleId,productName,productCode,notes }
+  saved_product_id UUID REFERENCES saved_products(id) ON DELETE SET NULL,
+  quantity INT NOT NULL CHECK (quantity > 0),
+  has_printing BOOLEAN NOT NULL DEFAULT FALSE,
+  printing_specs JSONB,                 -- { logoUrl/fileUrl, printPositionLabel, mockupUrl, dielineUrl }
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT cart_items_custom_needs_specs CHECK (kind <> 'custom' OR custom IS NOT NULL)
+);
+-- UNIQUE partial: cart_items_stock_key ON (customer_id, product_id) WHERE kind = 'stock'
+--   (20260919055000 thay cho cart_items_customer_product_key; upsertCartItem vẫn dựa 23505 để retry)
+
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "cart_items_customer_all" ON public.cart_items FOR ALL
+  USING (auth.uid() = customer_id) WITH CHECK (auth.uid() = customer_id);
+```
+
+> `product_id` **NOT NULL cho cả hai kind**: custom không có bảng giá riêng nên bắt buộc neo vào `products.base_price` (staff chốt lại ở `staff_review`). `assertAnchor()` từ chối sản phẩm không tồn tại/không active.
+
+> Data access: `src/lib/data/cart.ts` (admin client + lọc `customer_id` tường minh, theo quy ước `orders.ts`) và `src/lib/data/cart-add.ts` (điều phối 3 nhánh thêm custom: consultation / mẫu đã lưu / tự nhập). API: `/api/cart`, `/api/cart/[id]`, `/api/cart/count`, `/api/checkout`.
+
+### 2.11 FUNCTION deduct_order_stock(p_order_id UUID)
+
+Trừ tồn kho khi staff chốt đơn (`PATCH /api/orders/[id]/status` → `confirmed`). plpgsql, `search_path = public`, chỉ `service_role` được execute (migration `20260919010000`).
+
+- Idempotency: `SELECT ... FOR UPDATE` trên dòng orders + cờ `orders.stock_deducted` → bấm duyệt hai lần không trừ hai lần.
+- Oversell guard: `UPDATE products SET stock_quantity = stock_quantity - qty WHERE stock_quantity >= qty`; không match → `RAISE 'insufficient stock...'` → rollback toàn bộ → route hoàn tác status về cũ và trả 409.
+- JOIN lọc `p.stock_quantity IS NOT NULL AND NOT oi.is_custom` (migration `20260919060000`): dòng gia công có `product_id` chỉ để neo giá, không được trừ kho SKU đó.
+
+### 2.12 FUNCTION restock_order(p_order_id UUID)
+
+Đối xứng với `deduct_order_stock` — hoàn tồn kho khi đơn bị **hủy sau khi đã chốt** (`PATCH …/status` → `cancelled`, migration `20260919040000`, cùng `20260919060000` bổ sung `AND NOT oi.is_custom`). Cũng `SECURITY DEFINER`, chỉ `service_role` execute.
+
+- No-op khi `stock_deducted IS DISTINCT FROM TRUE` (chưa từng trừ → không có gì để hoàn; chạy lại lần 2 cũng thế).
+- Cộng trả `stock_quantity += qty` cho từng dòng hàng kho, rồi reset `stock_deducted = FALSE`.
+
+### 2.13 customer_addresses
+
+Sổ địa chỉ của khách — khỏi nhập lại thông tin giao hàng mỗi lần đặt (migration `20260919050000`).
+
+```sql
+CREATE TABLE public.customer_addresses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  label TEXT NOT NULL CHECK (char_length(label) BETWEEN 1 AND 60),  -- "Công ty", "Nhà riêng"
+  recipient_name TEXT NOT NULL,
+  phone TEXT NOT NULL CHECK (phone ~ '^[0-9]{10}$'),
+  email TEXT,
+  address TEXT NOT NULL,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- Một default mỗi khách, chặn ở DB:
+CREATE UNIQUE INDEX customer_addresses_one_default
+  ON public.customer_addresses (customer_id) WHERE is_default;
+CREATE INDEX customer_addresses_customer ON public.customer_addresses(customer_id);
+
+ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "customer_addresses_customer_all" ON public.customer_addresses FOR ALL
+  USING (auth.uid() = customer_id) WITH CHECK (auth.uid() = customer_id);
+```
+
+> Không backfill trong migration. `ensureDefaultAddress()` (`src/lib/data/addresses.ts`) dựng một dòng từ `profiles.full_name/phone/default_address` + email của auth khi khách mở checkout mà chưa có địa chỉ nào.
+> Checkout **không nhận text địa chỉ từ client**: `getAddressForCheckout(customerId, addressId?)` đọc DB rồi mới ghi snapshot vào `orders.contact_*` / `delivery_address`.
+> API: `/api/addresses` (GET list, POST = ensureDefault), `/api/addresses/[id]` (PATCH update|set-default, DELETE). UI: `src/components/checkout/address-picker.tsx` + `address-form-modal.tsx`.
 
 ---
 

@@ -256,7 +256,7 @@ export function OrdersPagination({
 export function OrdersEmptyState({
   title,
   description,
-  actionHref = '/order',
+  actionHref = '/dashboard/custom',
   actionLabel = 'Tạo đơn hàng',
 }: {
   title: string

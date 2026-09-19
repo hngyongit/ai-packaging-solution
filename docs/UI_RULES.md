@@ -98,11 +98,11 @@ Type scale ĐANG DÙNG THẬT (không phải scale tưởng tượng):
 ```css
 /* Standard Tailwind defaults — KHÔNG có screens/spacing override */
 page-section:       py-16 md:py-24      /* marketing */
-page-tight:         px-4 py-10 sm:px-6 lg:px-8   /* /order, /consultation wrapper */
+page-tight:         px-4 py-10 sm:px-6 lg:px-8   /* /shop, /pricing, /consultation wrapper */
 card-padding:       p-4 … p-8 tùy biến qua Card(variant size sm|default)
 component-gap:      gap-4 / gap-6 / space-y-6
 section-gap:        space-y-8            /* dashboard root */
-input-block:        space-y-1            /* label + control (consultation-fields) */
+input-block:        space-y-1            /* label + control (components/consultation/fields) */
 container:          max-w-7xl (marketing/dashboard list) · max-w-6xl (consultation) · max-w-5xl (timeline card, modal xl)
 ```
 
@@ -118,7 +118,7 @@ rounded-xl  = mặc định Tailwind 12px     /* Card + Modal content */
 rounded-full / rounded-4xl               /* badge pill */
 ```
 
-⚠️ Button/Input primitive đã là `rounded-lg`; **đừng** thêm `rounded-md` chồng lên. Các file cũ chưa migration vẫn dùng `rounded-md` cho input thô (`order-sections.tsx`) — giữ nguyên khi không sửa file đó, đổi sang token khi có việc.
+⚠️ Button/Input primitive đã là `rounded-lg`; **đừng** thêm `rounded-md` chồng lên. Các file cũ chưa migration vẫn dùng `rounded-md` cho ảnh/skeleton thô (thumbnail ở `custom/saved-profile-cards.tsx`, `dashboard/loading.tsx`) — giữ nguyên khi không sửa file đó, đổi sang token khi có việc.
 
 ### Shadows
 
@@ -235,13 +235,13 @@ Variants thật: `default outline secondary ghost destructive link`. Sizes thậ
 
 - Control cao `h-8` (compact), `text-base → md:text-sm`, `rounded-lg`, `border-input`, placeholder `text-muted-foreground`. `aria-invalid` tự đỏ + ring destructive — RHF `register` + zod đã set.
 - **Label ABOVE, never placeholder-as-label** ✅ (form nào cũng vậy). Helper dưới control `text-xs text-gray-500`.
-- Suffix đơn vị `cm`: pattern cũ `relative` + `<span className="absolute right-3 top-1/2…">` vẫn dùng trong `consultation-fields.tsx` — OK vì `Input` không có slot suffix.
+- Đơn vị `cm`: `Input` chưa có slot suffix → form tư vấn nhét đơn vị vào `placeholder` + `aria-label` ("Dài" / "Chiều dài (cm)"), form quy cách tự nhập để `(cm)` trong `label`. Pattern `relative` + `<span className="absolute right-3 top-1/2…">` hiện chỉ còn ở icon show/hide mật khẩu (`login`, `register`).
 - File input thật: `<input type="file" accept=…>` ẩn bằng `sr-only` + `ref.click()` từ Button (print-mockup-controls), KHÔNG styling file-input thô.
 
 ### 3.3 Selects
 
 Hai loại cùng tồn tại:
-1. **`<select>` thô** trong form public (`order-sections.tsx`, mockup position) — class: `block w-full rounded-lg border border-input bg-white px-3 py-2 text-sm …`; validation tự nhiên, không JS. MVP đang ưu tiên loại này.
+1. **`<select>` thô** trong form mua hàng (`custom-spec-form.tsx`, `checkout-form.tsx`, mockup position) — class: `block w-full rounded-lg border border-input bg-white px-3 py-2 text-sm …`; validation tự nhiên, không JS. MVP đang ưu tiên loại này.
 2. **`Select` base-ui** (`ui/select.tsx`) — chỉ dùng ở toolbar filter dashboard (`OrdersToolbar`). Trigger `h-8 rounded-md`. Chỉ add thêm chỗ nào cần combobox thật (nhiều options + search).
 
 ### 3.4 Cards — `Card` base-nova
@@ -270,8 +270,8 @@ Hai loại cùng tồn tại:
 ```tsx
 <EmptyState
   title="Chưa có đơn hàng"
-  description="Các đơn hàng bạn tạo từ form đặt hàng hoặc đặt lại sẽ xuất hiện tại đây."
-  actionHref="/order" actionLabel="Tạo đơn hàng"
+  description="Đơn đặt từ giỏ hàng hoặc đặt lại sẽ xuất hiện tại đây."
+  actionHref="/shop" actionLabel="Mua hàng"
 />
 ```
 
@@ -291,7 +291,14 @@ const form = useForm<OrderFormValues>({ resolver: zodResolver(orderSchema), mode
 {serverError && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{serverError}</div>}
 ```
 
-- Validate client = zod schema **là single source**, UI field lấy từ schema file (`consultation-schema.ts`, `order-schema.ts`).
+- Validate client = zod schema **là single source**, UI field lấy từ schema file. Mỗi form một schema khai báo cạnh form, server validate lại ở route:
+
+| Form | Client schema | Server validate |
+|---|---|---|
+| Tư vấn | `consultation/consultation-schema.ts` | `consultationInputSchema` (`lib/data/consultations.ts`) |
+| Quy cách tự nhập | `manualSchema` trong `custom-spec-form.tsx` | `customSpecSchema` (`lib/data/custom-spec.ts`) qua `POST /api/cart` |
+| Checkout | `checkoutSchema` trong `checkout-form.tsx` | `src/app/api/checkout/route.ts` |
+| Địa chỉ | `address-form-modal.tsx` | `src/app/api/addresses/[id]/route.ts` |
 - CTA disabled khi chưa đủ điều kiện + 1 dòng hint giải thích (`Tạo ảnh mockup để tiếp tục đặt hàng.`) — pattern `blockedByMockup`.
 
 ### 3.9 Interactive states

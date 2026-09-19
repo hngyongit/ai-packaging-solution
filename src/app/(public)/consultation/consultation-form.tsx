@@ -13,7 +13,7 @@ import type { AIRecommendation } from '@/lib/ai/types'
 import type { BoxStyleRecord } from '@/lib/data/boxes'
 
 import { consultationToInput, consultationSchema, type ConsultationFormValues } from './consultation-schema'
-import { BoxStylePicker, Field, InlineError, RadioGroup, Section } from './consultation-fields'
+import { BoxStylePicker, Field, InlineError, RadioGroup, Section } from '@/components/consultation/fields'
 import { LiveResultPanel, type WorkshopResult } from './consultation-live-result'
 
 export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] }) {

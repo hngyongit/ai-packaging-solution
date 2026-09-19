@@ -5,7 +5,7 @@ const footerLinks = [
     title: 'Dịch vụ',
     links: [
       { label: 'Tư vấn AI', href: '/consultation' },
-      { label: 'Đặt hàng', href: '/order' },
+      { label: 'Đặt hàng', href: '/shop' },
       { label: 'Bảng giá', href: '/pricing' },
     ],
   },

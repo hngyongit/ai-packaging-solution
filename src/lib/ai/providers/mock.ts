@@ -1,4 +1,5 @@
-import { BOX_STYLE_LABELS, type AIProvider, type AIRecommendation, type BoxStyle, type ProductOption, type RecommendInput } from '../types'
+import { scoreStock } from '../stock-match'
+import { BOX_STYLE_LABELS, type AIProvider, type AIRecommendation, type BoxStyle, type ProductOption, type RecommendInput, type StockMatch, type StockOption } from '../types'
 
 const BUFFER_CM = 2
 const DEFAULT_BOX_STYLE: BoxStyle = 'rsc_a1'
@@ -93,6 +94,11 @@ export class MockProvider implements AIProvider {
         confidence: 0.7,
       })),
     }
+  }
+
+  async matchStock(input: RecommendInput, catalog: StockOption[]): Promise<StockMatch[]> {
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    return scoreStock(input, catalog)
   }
 }
 

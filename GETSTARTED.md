@@ -181,22 +181,30 @@ ai-packaging-solution/
 │   │   ├── (public)/             # Route group — public (no auth)
 │   │   │   ├── page.tsx          # Landing page (scroll-reveal, hero animation)
 │   │   │   ├── consultation/     # AI consultation — form + live result trên 1 màn
-│   │   │   │   ├── consultation-form.tsx / -fields.tsx / -schema.ts
+│   │   │   │   ├── consultation-form.tsx / -schema.ts
+│   │   │   │   │   # fields dùng chung đã dời → src/components/consultation/fields.tsx
 │   │   │   │   ├── consultation-live-result.tsx / -ready-state.tsx / -result.tsx
 │   │   │   │   ├── print-mockup-panel.tsx / print-mockup-controls.tsx
 │   │   │   │   ├── consultation-alternatives.tsx / step-indicator.tsx
-│   │   │   │   └── result/       # /consultation/result?id=<uuid> — kết quả share được
+│   │   │   │   ├── result/       # /consultation/result?id=<uuid> — kết quả share được
+│   │   │   │   └── stock/        # /consultation/stock — AI tìm hàng có sẵn trong kho
+│   │   │   ├── shop/             # /shop — card hàng kho: Thêm vào giỏ + Mua ngay
 │   │   │   ├── dieline-lab/      # /dieline-lab — xem trước khuôn bế (zoom/pan/SVG/PDF)
-│   │   │   ├── order/            # Place order (+ print-handoff-notice.tsx)
+│   │   │   ├── order/            # 🗑 đã nghỉ: page.tsx chỉ còn redirect('/dashboard/custom')
 │   │   │   ├── about/            # Factory info (+ components/)
 │   │   │   └── pricing/          # Pricing guide (PriceTierCards + CatalogTable)
 │   │   ├── (guest)/              # login/, register/ — redirect đi nếu đã login
-│   │   ├── (auth)/dashboard/     # Customer portal: orders/[id]/, history/, reorder/, profile/
+│   │   ├── (auth)/dashboard/     # Customer portal: cart/, checkout/, custom/, orders/[id]/,
+│   │   │                         #  history/, reorder/, profile/
 │   │   ├── (staff)/staff/        # ⚠️ MỌI trang đang render <UnderDevelopmentPage/>
 │   │   ├── api/                  # Route Handlers
 │   │   │   ├── ai/recommend/     # → createConsultation → provider.recommend → update
 │   │   │   ├── ai/mockup/        # → khuôn bế + /v1/images/edits → Cloudinary (quota 3)
 │   │   │   ├── auth/callback/    # Supabase Auth callback
+│   │   │   ├── cart/ [id]/ count/  # thêm giỏ · PATCH quantity|custom · badge số lượng
+│   │   │   ├── checkout/           # tạo đơn từ cart + addressId (đọc địa chỉ từ DB)
+│   │   │   ├── addresses/ [id]/    # address book
+│   │   │   ├── saved-products/ [id]/ # mẫu đã lưu (DELETE có UI ở /dashboard/custom)
 │   │   │   ├── consultations/    ├── orders/ (+ [id]/status, [id]/payment)
 │   │   │   └── products/  ├── upload/  └── reorder/
 │   │   └── UnderDevelopmentPage.tsx
@@ -210,7 +218,10 @@ ai-packaging-solution/
 │   │   ├── layout/               # navbar, footer, DashboardNav, StaffSidebar
 │   │   ├── modals/               # PascalCase: PaymentConfirmation, CancelOrder, PriceChange,
 │   │   │                         #  UploadProof, CustomerQuickView, ProductEditDrawer, ...
-│   │   └── order/                # print-preview-strip
+│   │   ├── order/                # print-preview-strip
+│   │   ├── consultation/         # fields.tsx — Section/Field/InlineError/BoxStylePicker/RadioGroup
+│   │   ├── cart/                 # use-add-to-cart.ts · custom-cart-actions.tsx
+│   │   └── checkout/             # address-picker.tsx · address-form-modal.tsx
 │   ├── lib/                      # Shared infrastructure
 │   │   ├── supabase/             # client.ts (browser, anon+RLS), server.ts (createClient / createAdminClient)
 │   │   ├── data/                 # consultations, orders, order-shared, products, boxes
@@ -218,7 +229,7 @@ ai-packaging-solution/
 │   │   │   │                     #  context.md (prompt — sửa là đổi hành vi AI)
 │   │   │   └── providers/        # openai.ts, mock.ts
 │   │   ├── dieline/              # index.ts (engine mm→SVG), print-faces.ts
-│   │   ├── mockup/               # request.ts, generate.ts, handoff.ts — điều độ gen ảnh
+│   │   ├── mockup/               # request.ts, generate.ts — điều độ gen ảnh
 │   │   ├── cloudinary/upload.ts  # signed/unsigned upload server-side
 │   │   ├── images/dimensions.ts  # đọc aspect ratio từ header ảnh
 │   │   ├── config/               # features, constants, pricing, print-positions
@@ -226,7 +237,7 @@ ai-packaging-solution/
 │   └── types/database.ts
 ├── supabase/
 │   ├── config.toml
-│   └── migrations/               # 6 file — áp bằng `npx supabase db push`
+│   └── migrations/               # 14 file — áp bằng `npx supabase db push`
 ├── components.json               # shadcn CLI config (style base-nova, iconLibrary phosphor)
 ├── next.config.mjs               # images.remotePatterns — hiện chỉ picsum.photos
 ├── .env.example                  # ĐÂY LÀ DANH SÁCH BIẾN THẬT, không phải docs/
@@ -241,9 +252,9 @@ ai-packaging-solution/
 
 | Route group | Auth required | Vai trò |
 |-------------|---------------|---------|
-| `(public)/` | ❌ | `/`, `/about`, `/pricing`, `/consultation` (form + live result cùng màn), `/consultation/result?id=`, `/dieline-lab`, `/order` |
+| `(public)/` | ❌ | `/`, `/about`, `/pricing`, `/shop`, `/consultation` (form + live result cùng màn), `/consultation/result?id=`, `/consultation/stock`, `/dieline-lab`; `/order` chỉ còn redirect |
 | `(guest)/` | ❌ (chỉ guest) | `/login`, `/register` — redirect về dashboard nếu đã login |
-| `(auth)/` | ✅ | `/dashboard` + `orders/[id]`, `history`, `reorder`, `profile` |
+| `(auth)/` | ✅ | `/dashboard` + `cart`, `checkout`, `custom`, `orders/[id]`, `history`, `reorder`, `profile` |
 | `(staff)/` | ⚠️ chỉ cần login — **chưa enforce role staff** | `/staff/*` — hiện tất cả là placeholder |
 
 > **Middleware** (`src/middleware.ts`) chỉ gate theo pathname: `/dashboard` + `/staff` yêu cầu đã đăng nhập, `/login` + `/register` redirect khi đã đăng nhập. **Không có chỗ nào check `profiles.role`** — RLS mới chặn được ở tầng DB. Matcher loại asset tĩnh.
@@ -253,7 +264,7 @@ Public routes dùng `<Navbar>` + `<Footer>`. Auth routes thêm `<DashboardNav>`.
 ### Anonymous consultation
 
 - **AI Consultation**: Không cần login — anonymous có thể submit consultation request
-- **Placing Order**: Phải login/register để đặt hàng
+- **Placing Order**: Phải login/register để đặt hàng — mọi đường tạo đơn giờ đi qua `/dashboard/cart` + `/dashboard/checkout` (middleware gate), kể cả "Mua ngay" từ kết quả tư vấn
 - **Session handling**: Anonymous consultations tracked by device. Khi user register sau, có thể link qua phone/email.
 
 ---
@@ -285,6 +296,7 @@ Server (trusted)
 - `consultations` — public insert, customer read/update own, staff read/update all
 - `orders` — customer read own, staff read/update all (insert chỉ qua service_role ở server)
 - `profiles` — customer read/update own, staff read all
+- `cart_items`, `customer_addresses` — RLS `FOR ALL USING (auth.uid() = customer_id)`
 - `order_items`, `order_status_history`, `saved_products`, `reorder_templates` — xem `docs/DATABASE_SCHEMA.md`
 
 > ⚠️ Route handler dùng `createAdminClient()` (service_role) → **bypass RLS**, nên suy cho cùng nó phải tự check `profiles.role` — pattern hiện tại là `isStaff()` trong `src/app/api/orders/[id]/status/route.ts`.
@@ -322,7 +334,7 @@ Client → POST /api/ai/mockup (multipart: consultationId + logo + print positio
   → updateMockupAssets() lưu mockup_url
 ```
 
-Vị trí in hợp lệ **phụ thuộc kiểu thùng** — `src/lib/config/print-positions.ts` (`rsc_a1` → `2_main|4_sides`, `am_duong`/`mailer` → `1_top`), server enforce bằng `isPrintPositionForBoxStyle`. Kết quả hand-off sang form đặt hàng qua `src/lib/mockup/handoff.ts` (copy `mockupUrl`/`dielineUrl` vào `order_items.printing_specs`) và hiển thị bằng `src/components/order/print-preview-strip.tsx`.
+Vị trí in hợp lệ **phụ thuộc kiểu thùng** — `src/lib/config/print-positions.ts` (`rsc_a1` → `2_main|4_sides`, `am_duong`/`mailer` → `1_top`), server enforce bằng `isPrintPositionForBoxStyle`. Kết quả không còn hand-off qua URL: ảnh đi theo consultation, `POST /api/cart {kind:'custom', consultationId}` copy `mockupUrl`/`dielineUrl` vào dòng giỏ (`customFromConsultation()` ở `src/lib/data/cart-add.ts`), checkout ghi tiếp xuống `order_items.printing_specs`, và hiển thị lại bằng `src/components/order/print-preview-strip.tsx`.
 
 > **Storage chia làm hai đường**: file user upload (`/api/upload` — logo, reference, payment-proof, order-file) vào **Supabase Storage**; ảnh AI sinh ra (mockup, khuôn bế) vào **Cloudinary**.
 

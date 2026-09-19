@@ -21,7 +21,7 @@
 |---|---|------|-------|-----|------|
 | A1 | ✅ | AI provider abstraction (text) | `src/lib/ai/index.ts`, `providers/openai.ts`, `providers/mock.ts` — ai-box OpenAI-compatible, fallback `MockProvider` khi thiếu `AI_API_KEY` | P0 | 2h |
 | A2 | ✅ | AI recommend API route | `src/app/api/ai/recommend/route.ts` — insert `pending` → call AI → update `ai_processed` | P0 | 2h |
-| A3 | ✅ | Consultation spec input page | `src/app/(public)/consultation/page.tsx` + `consultation-form.tsx` + `consultation-schema.ts` + `consultation-fields.tsx` | P0 | 4h |
+| A3 | ✅ | Consultation spec input page | `src/app/(public)/consultation/page.tsx` + `consultation-form.tsx` + `consultation-schema.ts` + `src/components/consultation/fields.tsx` | P0 | 4h |
 | A4 | ✅ | Consultation result | `consultation-result.tsx` + `consultation-ready-state.tsx` (render inline cột phải) **và** `result/page.tsx` (`?id=`, deep-link) | P0 | 3h |
 | A5 | ✅ | Data access (consultations) | `src/lib/data/consultations.ts` | P0 | 1h |
 | A6 | ✅ | AI mockup API route | `src/app/api/ai/mockup/route.ts` — `qwen-image-3.0` + dieline SVG → Cloudinary, quota `mockup_requests` ≤ 3 (CAS, 429) | P1 | 3h |
@@ -29,7 +29,7 @@
 | A8 | ✅ *(new)* | Dieline engine thuần (mm → SVG) | `src/lib/dieline/*` (`build`/`toSVG`/`viewBoxOf`/`render`, kinds `rsc`/`telescope`/`mailer`), `src/features/dieline/*`, `src/app/(public)/dieline-lab/` | P1 | — |
 | A9 | ✅ *(new)* | Print positions per box style | `src/lib/config/print-positions.ts` (`2_main`/`4_sides`/`1_top`) — server ép theo kiểu thùng | P1 | — |
 | A10 | ✅ *(new)* | Cloudinary server-side upload | `src/lib/cloudinary/upload.ts` (signed HMAC-SHA1, hoặc unsigned khi có `CLOUDINARY_UPLOAD_PRESET`) | P1 | — |
-| A11 | ✅ *(new)* | Print → order hand-off | `src/lib/mockup/handoff.ts`, `src/components/order/print-preview-strip.tsx`, `order_items.printing_specs` | P1 | — |
+| A11 | ✅ *(new)* | Print assets vào đơn | `src/lib/data/cart-add.ts` (`customFromConsultation()` copy `mockupUrl`/`dielineUrl`), `src/components/order/print-preview-strip.tsx`, `order_items.printing_specs`. Bản hand-off qua `/order` + `lib/mockup/handoff.ts` đã xoá | P1 | — |
 
 **Files**: `src/lib/ai/*`, `src/lib/dieline/*`, `src/lib/cloudinary/*`, `src/lib/mockup/*`, `src/app/api/ai/*`, `src/app/(public)/consultation/*`, `src/app/(public)/dieline-lab/*`, `src/features/{dieline,consultation,products}/*`, `src/lib/data/consultations.ts`
 
@@ -41,13 +41,14 @@
 
 | # | Status | Task | Files | Pri | Est. |
 |---|---|------|-------|-----|------|
-| B1 | ✅ | Orders API (GET list + POST create) | `src/app/api/orders/route.ts` — server re-price, `order_code = ORD-YYYYMMDD-XXXXXXXX`, deposit 50% khi ≥ 5tr, rollback nếu insert items fail | P0 | 2h |
+| B1 | ✅ | Orders API (GET list + POST create) | `src/app/api/orders/route.ts` (60 dòng) + `src/lib/data/orders-create.ts` — server re-price, `order_code = ORD-YYYYMMDD-XXXXXXXX`, deposit 50% khi ≥ 5tr, rollback nếu insert items fail. `POST /api/checkout` dùng chung `createOrderWithItems()` | P0 | 2h |
 | B2 | ✅ | Order status API | `src/app/api/orders/[id]/status/route.ts` — `STAFF_TRANSITIONS`/`CUSTOMER_TRANSITIONS`, CAS 409 | P0 | 1h |
 | B3 | 🟡 | Order payment API | `src/app/api/orders/[id]/payment/route.ts` — **chỉ ghi `payment_method` + `payment_proof_url`**; `payment_status` không bao giờ đổi → cần UI staff verify | P0 | 1h |
 | B4 | ✅ | Reorder API | `src/app/api/reorder/route.ts` — `copiedItems`/`skippedItems`, chỉ role `customer` | P1 | 1h |
 | B5 | ✅ | Upload API | `src/app/api/upload/route.ts` — 4 purposes, 2 buckets (`logos` public / `order-files` signed 1h) | P0 | 1h |
-| B6 | ✅ | Standalone order page | `src/app/(public)/order/page.tsx` + `order-form.tsx` + `order-items.tsx` + `order-sections.tsx` + `order-summary.tsx` + `order-schema.ts` | P0 | 4h |
-| B7 | ✅ | Customer orders list | `src/app/(auth)/dashboard/orders/page.tsx` — `?status&page&search&sort`, URL-state modals `?modal=create` / `?orderId=` | P0 | 3h |
+| B6 | 🗑 Đã nghỉ | Standalone order page — form tạo đơn đã xoá; đơn chỉ tạo qua giỏ (`/dashboard/cart` → `/dashboard/checkout`). `order/page.tsx` còn lại mỗi `redirect('/dashboard/custom')` | P0 | — |
+| B6b | ✅ *(new)* | Cart → checkout → custom tab | `/dashboard/cart`, `/dashboard/checkout`, `/dashboard/custom`, `api/cart*`, `api/checkout`, `api/addresses*`, `lib/data/{cart,cart-add,custom-spec,addresses}.ts` | P0 | — |
+| B7 | ✅ | Customer orders list | `src/app/(auth)/dashboard/orders/page.tsx` — `?status&page&search&sort`, URL-state modal `?orderId=` (`?modal=create` đã bỏ cùng form tạo đơn) | P0 | 3h |
 | B8 | ✅ | Customer order detail | `src/app/(auth)/dashboard/orders/[id]/page.tsx` + `cancel-order-button.tsx` | P0 | 3h |
 | B9 | ✅ | Order history | `src/app/(auth)/dashboard/history/page.tsx` (`HISTORY_STATUSES`) | P1 | 2h |
 | B10 | ✅ | Reorder page | `src/app/(auth)/dashboard/reorder/page.tsx` + `reorder-form.tsx` (`?id=`) | P1 | 2h |
@@ -84,7 +85,7 @@
 | D1 | 🟡 | ✅ About page | `src/app/(public)/about/page.tsx` — nội dung tĩnh, **hero vẫn dùng ảnh placeholder `picsum.photos`** | P1 | 3h |
 | D2 | ✅ | Pricing page | `src/app/(public)/pricing/page.tsx` — đọc `VOLUME_TIERS` từ `lib/config/pricing.ts` | P1 | 3h |
 | D3 | ✅ | Customer dashboard | `src/app/(auth)/dashboard/page.tsx` — 3 stats cards + quick actions + recent orders, `<ErrorState />` khi data fail | P0 | 3h |
-| D4 | 🟡 | Payment confirmation modal | `src/components/modals/PaymentConfirmation.tsx` — nối ở `order-form.tsx`. ⚠️ `BANK_TRANSFER_DETAILS` **hard-code số TK placeholder** | P0 | 1h |
+| D4 | 🟡 | Payment confirmation modal | `src/components/modals/PaymentConfirmation.tsx` — nối ở `dashboard/orders/order-modals.tsx` + `checkout-form.tsx`. ⚠️ `BANK_TRANSFER_DETAILS` **hard-code số TK placeholder** | P0 | 1h |
 | D5 | ✅ | Cancel order modal | `src/components/modals/CancelOrder.tsx` — nối qua `cancel-order-button.tsx` | P0 | 1h |
 | D6 | 🟡 | Price change modal | `src/components/modals/PriceChange.tsx` — **viết xong, chưa có caller** (chờ C5) | P1 | 1h |
 | D7 | 🟡 | Upload payment proof modal | `src/components/modals/UploadProof.tsx` — **chưa có caller** (chờ C7; flow hiện gộp trong D4) | P1 | 1h |

@@ -97,17 +97,22 @@ Design Read: Landing page for manufacturing B2B buyers, with a clean industrial 
 ```
 src/
 ├── app/                     # Routes only — no business logic
-│   ├── (public)/            # Landing, consultation, about, pricing, order, dieline-lab
+│   ├── (public)/            # Landing, consultation, about, pricing, shop, dieline-lab
 │   │   ├── page.tsx         # Landing
-│   │   ├── consultation/    # AI form + result + print-mockup (step=query param)
-│   │   │   └── result/
-│   │   ├── order/           # Standalone order (without AI)
+│   │   ├── consultation/    # AI form + live result + print-mockup (một màn)
+│   │   │   ├── result/      # /consultation/result?id= — bản share được
+│   │   │   └── stock/       # /consultation/stock — AI tìm hàng trong kho
+│   │   ├── shop/            # Hàng có sẵn trong kho (add to cart / mua ngay)
+│   │   ├── order/           # 🗑 redirect('/dashboard/custom') — form tạo đơn đã xoá
 │   │   ├── dieline-lab/     # Khuôn bế (dieline) preview
 │   │   ├── about/
 │   │   └── pricing/
 │   ├── (guest)/             # login/, register/ — redirect away if authed
 │   ├── (auth)/              # Customer pages (login required)
 │   │   └── dashboard/
+│   │       ├── cart/        # Giỏ trộn stock + custom
+│   │       ├── checkout/    # Chọn địa chỉ đã lưu → tạo đơn
+│   │       ├── custom/      # Mẫu đã lưu + tự nhập quy cách
 │   │       ├── orders/[id]/
 │   │       ├── history/
 │   │       ├── reorder/
@@ -121,6 +126,10 @@ src/
 │   └── api/                 # Route Handlers (thin layer, delegates to lib/data/)
 │       ├── ai/recommend/
 │       ├── ai/mockup/
+│       ├── cart/            # + [id]/ (PATCH quantity|custom) + count/
+│       ├── checkout/        # tạo đơn từ cart + addressId
+│       ├── addresses/       # + [id]/ — address book
+│       ├── saved-products/  # + [id]/
 │       ├── consultations/
 │       ├── orders/
 │       │   ├── [id]/status/
@@ -129,19 +138,22 @@ src/
 │       ├── upload/
 │       └── reorder/
 ├── features/                # Self-contained feature modules
-│   ├── consultation/        # components/, hooks/, utils.ts, types.ts
+│   ├── consultation/        # ❌ folder rỗng (chỉ còn components/ trống) — UI thật ở app/(public)/consultation
 │   ├── dieline/             # DielinePreview.tsx (khuôn bế UI)
 │   └── products/            # CatalogTable, PriceTierCards, types, utils
 ├── components/              # Shared components only
 │   ├── ui/                  # shadcn primitives (Button, Input, Card, Modal, etc.)
 │   ├── layout/              # navbar, footer, DashboardNav, StaffSidebar
 │   ├── modals/              # PascalCase modals (PaymentConfirmation, CancelOrder, ...)
+│   ├── consultation/        # fields.tsx — Section/Field/BoxStylePicker/RadioGroup
+│   ├── cart/                # use-add-to-cart.ts, custom-cart-actions.tsx
+│   ├── checkout/            # address-picker.tsx, address-form-modal.tsx
 │   └── order/               # print-preview-strip
 └── lib/                     # Shared infrastructure
     ├── data/                # All Supabase queries (single source of truth)
     ├── ai/                  # AI provider abstraction (providers/openai.ts, providers/mock.ts)
     ├── dieline/             # Khuôn bế engine (index.ts, print-faces.ts) — pure, no React
-    ├── mockup/              # Mockup in: request/generate/handoff
+    ├── mockup/              # Mockup in: request/generate
     ├── cloudinary/          # Server-side signed/unsigned image upload
     ├── images/              # dimensions helpers
     ├── config/              # features, pricing, constants, print-positions

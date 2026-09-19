@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ImageSquare, UploadSimple } from '@phosphor-icons/react'
 
-import { Field, RadioGroup } from './consultation-fields'
+import { Field, RadioGroup } from '@/components/consultation/fields'
 import { PRINT_POSITION_LABELS, printPositionsForBoxStyle } from '@/lib/config/print-positions'
 
 export function PrintPositionField({

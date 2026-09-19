@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, Lightbulb, Package, PiggyBank, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
-import { Button } from '@/components/ui/button'
+import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import { type AIRecommendation } from '@/lib/ai/types'
 
 import { Alternatives } from './consultation-alternatives'
+import { SaveAsTemplateButton } from './save-as-template-button'
 import { PrintMockupPanel, EMPTY_MOCKUP, type MockupAssets } from './print-mockup-panel'
 import { StepIndicator } from './step-indicator'
 
@@ -148,26 +149,28 @@ export function ConsultationResult({
           <Alternatives alternatives={r.alternatives} />
         </div>
 
-        {/* Actions */}
+        {/* Actions — đơn chỉ được tạo qua giỏ hàng */}
         <div className="mt-6 space-y-3">
-          <Button
+          <CustomCartActions
+            className="space-y-3"
             size="lg"
-            className="w-full"
             disabled={blockedByMockup}
-            onClick={() =>
-              window.location.assign(consultationId ? `/order?consultation=${consultationId}` : '/order')
+            payload={
+              consultationId
+                ? {
+                    kind: 'custom',
+                    consultationId,
+                    productId: r.suggestedProductId ?? undefined,
+                    quantity: r.moq,
+                    hasPrinting,
+                  }
+                : null
             }
-          >
-            <Package className="h-4 w-4" />
-            Đặt hàng ngay
-          </Button>
+          />
           {blockedByMockup && (
             <p className="text-center text-xs text-gray-500">Tạo ảnh mockup để tiếp tục đặt hàng.</p>
           )}
-          <Button size="lg" variant="ghost" className="w-full" onClick={() => window.location.assign('/dashboard')}>
-            <PiggyBank className="h-4 w-4" />
-            Lưu để sau
-          </Button>
+          {consultationId && <SaveAsTemplateButton consultationId={consultationId} size="lg" className="w-full" />}
         </div>
 
         <p className="mt-6 text-center text-xs text-gray-500">

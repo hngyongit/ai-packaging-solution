@@ -28,7 +28,7 @@
   - [4. Print Mockup Panel (bản vẽ khuôn bế + ảnh in)](#4-print-mockup-panel-b-n-v-khu-n-b--nh-in)
   - [5. Pricing (`/pricing`)](#5-pricing-pricing)
   - [6. Dieline Lab (`/dieline-lab`)](#6-dieline-lab-dieline-lab)
-  - [7. Order — standalone (`/order`)](#7-order--standalone-order)
+  - [7. Order — đã nghỉ (`/order` → redirect)](#7-order--đã-nghỉ-order-redirect)
   - [8. About (`/about`)](#8-about-about)
   - [9. Login (`/login`)](#9-login-login)
   - [10. Register (`/register`)](#10-register-register)
@@ -202,7 +202,7 @@ Không có.
 **Code**:
 - `src/app/(public)/consultation/page.tsx` — Server Component, gọi `getBoxStyles()` rồi render
   `<ConsultationForm boxStyles={...} />` (`src/app/(public)/consultation/consultation-form.tsx`, `'use client'`)
-- Fields: `consultation-fields.tsx` (export `Section`, `Field`, `InlineError`, `BoxStylePicker`, `RadioGroup`)
+- Fields: `src/components/consultation/fields.tsx` (export `Section`, `Field`, `InlineError`, `BoxStylePicker`, `RadioGroup`) — dùng chung với form quy cách tự nhập
 - Kết quả: `consultation-live-result.tsx` (`LiveResultPanel`) + `consultation-ready-state.tsx`
 - Validate: `consultation-schema.ts` (zod)
 
@@ -340,7 +340,7 @@ mở lại từ email). Không có link nội bộ nào trỏ tới → ⚠️ *
 │  Xem các lựa chọn khác (n)                                     │
 │  [Panel Mockup in — xem §4]                                    │
 │                                                                │
-│  [Đặt hàng ngay]  [Lưu để sau]                                 │
+│  [Thêm vào giỏ]  [Mua ngay]  [Lưu làm mẫu]                     │
 │  "Sau khi đặt hàng, nhân viên của chúng tôi sẽ xác nhận giá    │
 │   và thời gian sản xuất trong vòng 24h."                       │
 ├────────────────────────────────────────────────────────────────┤
@@ -362,7 +362,7 @@ mở lại từ email). Không có link nội bộ nào trỏ tới → ⚠️ *
 | Aspect | Quyết định |
 |---|---|
 | **Trùng lặp** | `consultation-result.tsx` (full-page) và `consultation-ready-state.tsx` (inline) là **hai bản render khác nhau** của cùng một `AIRecommendation`. Copy CTA giống nhau, bố cục khác. Sửa 1 chỗ phải nhớ sửa chỗ kia |
-| **CTA** | `Đặt hàng ngay` → `/order?consultation=<id>` (disabled nếu `blockedByMockup`); `Lưu để sau` → `/dashboard` (chuyển hướng thẳng, không thực sự "lưu" gì thêm) |
+| **CTA** | `CustomCartActions` (`src/components/cart/custom-cart-actions.tsx`) — `Thêm vào giỏ` + `Mua ngay`, payload `{kind:'custom', consultationId, productId: rec.suggestedProductId, quantity: rec.moq, hasPrinting}`. Cả hai disabled khi `blockedByMockup`. `Mua ngay` = thêm giỏ rồi `router.push('/dashboard/checkout?items=<id>')`. **Cần đăng nhập** (API trả 401 → hint rồi redirect `/login`). Bên cạnh là `Lưu làm mẫu` → `saved_products` |
 
 ---
 
@@ -446,8 +446,8 @@ mở lại từ email). Không có link nội bộ nào trỏ tới → ⚠️ *
 
 | State | Render |
 |---|---|
-| AI trả `503` (chưa cấu hình) | panel set `status='unavailable'` → **gỡ lock** nút `Đặt hàng ngay` |
-| Chưa có mockup + khách chọn in | CTA `Đặt hàng ngay` bị **disabled**, hint `Tạo ảnh mockup để tiếp tục đặt hàng.` (`blockedByMockup = result.hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl`) |
+| AI trả `503` (chưa cấu hình) | panel set `status='unavailable'` → **gỡ lock** hai nút giỏ hàng |
+| Chưa có mockup + khách chọn in | `CustomCartActions` nhận `disabled` → cả `Thêm vào giỏ` lẫn `Mua ngay` bị chặn, hint `Tạo ảnh mockup để tiếp tục đặt hàng.` (`blockedByMockup = result.hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl`) |
 | AI fail nhưng dieline đã sinh | ⚠️ giữ lại `dielineUrl` một phần — UI hiển thị khuôn bế không có ảnh in |
 | Đủ điều kiện | `MockupPreview` hiện ảnh (click mở tab mới) + link `Khuôn bế` |
 
@@ -458,7 +458,7 @@ mở lại từ email). Không có link nội bộ nào trỏ tới → ⚠️ *
 | **Model** | `AI_IMAGE_MODEL ?? 'qwen-image-3.0'`, qua provider abstraction `getAIProvider()` (`ai-box`) — có Mock path khi thiếu key |
 | **SSRF** | `validateAssetUrl` allowlist `*.supabase.co` + `res.cloudinary.com`, bắt buộc `https:`. Có comment `ponytail:` đánh dấu allowlist hardcode |
 | **Dieline** | SVG sinh bởi engine thuần `src/lib/dieline` (mm → `toSVG`), render bằng `dangerouslySetInnerHTML` — input là kích thước số, không phải HTML user |
-| **Hand-off** | `src/lib/mockup/handoff.ts` `getPrintHandoff()` trả `null` nếu `consultation.customer_id` tồn tại mà khác `user.id` → chống đọc mockup người khác qua `?consultation=` |
+| **Hand-off** | Không còn hand-off qua URL. Ảnh ở lại `consultations.printing_*`; `POST /api/cart {kind:'custom', consultationId}` copy `mockupUrl`/`dielineUrl` vào dòng giỏ (`customFromConsultation()` ở `src/lib/data/cart-add.ts`), route đó 403 khi `consultation.customer_id` tồn tại mà khác `user.id` → chống lấy mockup người khác. `src/lib/mockup/handoff.ts` đã xoá |
 
 ---
 
@@ -500,7 +500,7 @@ cũng là nơi duy nhất `CatalogTable` được dùng thật.
 │                                                                 │
 │  ┌ Card "Cần báo giá chính xác?" ──────────────────────────┐    │
 │  │ [Nhận tư vấn miễn phí] -> /consultation                  │   │
-│  │ [Đặt hàng ngay] ---------> /order                        │   │
+│  │ [Đặt hàng ngay] ---------> /shop                         │   │
 │  └─────────────────────────────────────────────────────────┘    │
 ├─────────────────────────────────────────────────────────────────┤
 │  FOOTER                                                         │
@@ -596,115 +596,33 @@ Nút mở/đóng nhóm nâng cao: `+ Thông số kỹ thuật` / `− Thu gọn`
 
 ---
 
-### 7. Order — standalone (`/order`) ✅
+### 7. Order — đã nghỉ (`/order` → redirect)
 
-**Purpose**: Tạo đơn hàng sản xuất. Là screen duy nhất **bắt buộc đăng nhập để submit**
-mà vẫn mở được cho khách lạ.
+**Purpose**: Trước đây là form tạo đơn riêng (13 file). **Đã bỏ**: đơn hàng chỉ được
+tạo qua **Thêm vào giỏ** hoặc **Mua ngay**, nên form này không còn lý do tồn tại.
 
-**Route**: `/order` (nhận `?consultation=<uuid>` để nhận bàn giao in)
-**Code**: `src/app/(public)/order/page.tsx` (RSC, `dynamic='force-dynamic'`,
-`getActiveProductOptions()` + `getPrintHandoff(searchParams.consultation)`)
-→ `order-form.tsx` (`'use client'`) + `order-sections.tsx` + `order-items.tsx` +
-`order-summary.tsx` + `print-handoff-notice.tsx` + `order-schema.ts` + `order-utils.ts`
-**Layout**: L1
+**Route**: `/order` — còn giữ một file `src/app/(public)/order/page.tsx` duy nhất:
+`redirect('/dashboard/custom')`, để URL đã chia sẻ không chết.
 
-> Cùng một `OrderForm` cũng chạy trong modal `?modal=create` ở `/dashboard/orders` với
-> `variant="modal"` (lúc này `OrderSummary` nằm inline thay vì sticky aside) — xem M7.
+**Code đã xoá**: `order-form.tsx`, `order-sections.tsx`, `order-items.tsx`,
+`order-summary.tsx`, `order-actions.tsx`, `order-submit.ts`, `order-schema.ts`,
+`order-utils.ts`, `order-types.ts`, `saved-templates-picker.tsx`,
+`print-handoff-notice.tsx`, `form-field.tsx` + `src/lib/mockup/handoff.ts`.
+Di dời trước khi xoá: `ProductOption` → `src/features/products/types.ts`;
+`Field` → `src/components/ui/field.tsx`; primitives của form tư vấn (
+`Section`/`RadioGroup`/`BoxStylePicker`/`InlineError`) → `src/components/consultation/fields.tsx`.
 
----
+**Ba đường mua còn lại**:
 
-#### Structure
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│  NAVBAR                                                        │
-├────────────────────────────────────────────────────────────────┤
-│  max-w-7xl — grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]     │
-│                                                                │
-│  Eyebrow "Đặt carton"                                          │
-│  H1 "Tạo đơn hàng sản xuất"                                    │
-│  "Chọn quy cách carton, tải file thiết kế nếu cần và gửi đơn   │
-│   để nhân viên duyệt."                                         │
-│                                                                │
-│  [⚠️ AuthNotice nếu chưa login]                                 │
-│  [⚠️ PrintHandoffNotice nếu có ?consultation= có mockup]        │
-│                                                                │
-│  CARD "Sản phẩm carton"  (order-items)                         │
-│   Sản phẩm 1            Sản phẩm 2 ...  [+ Thêm sản phẩm]      │
-│    Sản phẩm [select]     Số lượng / D / R / C / Số lớp         │
-│    [x] Cần in ấn          Ghi chú sản phẩm                     │
-│   (mỗi dòng có nút xoá, aria-label="Xóa sản phẩm"; disabled    │
-│    khi chỉ còn 1 dòng)                                         │
-│                                                                │
-│  CARD "Thông tin liên hệ và giao nhận"                         │
-│   Tên liên hệ · Số điện thoại · Email                          │
-│   Phương thức giao nhận [chỉ 1 option: Giao hàng]              │
-│   Địa chỉ giao hàng · Ghi chú                                  │
-│                                                                │
-│  CARD "Thiết kế và thanh toán"                                 │
-│   File thiết kế [Tải logo hoặc file thiết kế]  (chỉ hiện       │
-│       khi có >=1 dòng "Cần in ấn")                             │
-│   Phương thức thanh toán [Thanh toán khi nhận hàng|Chuyển      │
-│       khoản]                                                   │
-│                                                                │
-│  [Gửi đơn hàng] / "Đang gửi..."   [Bắt đầu bằng tư vấn AI]     │
-│                             │ ASIDE sticky lg:top-24           │
-│                             │  CARD "Tóm tắt đơn hàng"         │
-│                             │   "N sản phẩm x giá"             │
-│                             │   Tạm tính ...                   │
-│                             │   "Giá cuối cùng sẽ được server  │
-│                             │    tính và nhân viên xác nhận    │
-│                             │    sau khi duyệt đơn."           │
-├────────────────────────────────────────────────────────────────┤
-│  FOOTER                                                        │
-└────────────────────────────────────────────────────────────────┘
-```
-
-#### Fields / Copy
-
-| Nhóm | Field | Label | Ghi chú |
-|---|---|---|---|
-| Liên hệ | `contactName` | `Tên liên hệ` | `Vui lòng nhập tên liên hệ` |
-| | `phone` | `Số điện thoại` | strip chữ không phải số, max 10 · `Số điện thoại phải đủ 10 chữ số` |
-| | `email` | `Email` | `Email không hợp lệ` |
-| | `deliveryMethod` | `Phương thức giao hàng` | ⚠️ select **chỉ có 1** option: `<option value="delivery">Giao hàng</option>`; schema là `z.literal('delivery')` |
-| | `address` | `Địa chỉ giao hàng` | `Vui lòng nhập địa chỉ giao hàng` |
-| | `notes` | `Ghi chú` | optional |
-| Items | `productId` | `Sản phẩm` | option text `${code} / ${name}` · lỗi `Vui lòng chọn sản phẩm carton` |
-| | `quantity`/`length`/`width`/`height`/`layers` | `Số lượng` `Dài (cm)` `Rộng (cm)` `Cao (cm)` `Số lớp` | default `100 / 30 / 20 / 15 / 3`; `Số lượng tối thiểu là 1` |
-| | `hasPrinting` | `Cần in ấn` | checkbox, điều kiện hiện khối upload |
-| | `itemNotes` | `Ghi chú sản phẩm` | |
-| Artwork | `artwork` | `File thiết kế` / text nút `Tải logo hoặc file thiết kế` | helper `PNG, JPG, PDF, AI hoặc EPS, tối đa 10MB`; `purpose: 'logo'`; chỉ hiện khi có dòng chọn in |
-| Thanh toán | `paymentMethod` | `Phương thức thanh toán` | `cod` = `Thanh toán khi nhận hàng`, `bank_transfer` = `Chuyển khoản` |
-
-#### States
-
-| State | Render |
+| Screen | Đường |
 |---|---|
-| Chưa đăng nhập | `AuthNotice`: `Vui lòng đăng nhập hoặc tạo tài khoản trước khi gửi đơn hàng.` + `Đăng nhập` / `Đăng ký`. Nút submit disabled |
-| Catalog rỗng | `CatalogNotice`: `Hiện chưa có sản phẩm carton đang hoạt động...`; submit disabled (`products.length === 0`) |
-| Đang submit | `isSubmitting \|\| products.length === 0 \|\| !isAuthed` → disabled, text `Đang gửi...` |
-| 401 từ API | `Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.` |
-| Lỗi khác | `translateOrderError()` map theo nhóm: `unauthorized` / `forbidden` / `product not found` / `missing\|invalid` / `upload` / `internal` |
-| Thành công | `OrderSuccess`: `Đã nhận đơn hàng` + `Mã đơn hàng` + `Tổng tạm tính` + `Xem đơn hàng của tôi` / `Tạo đơn hàng khác`. Nếu `paymentMethod === 'bank_transfer'` → **tự mở** M1 |
+| Shop (`/shop`) | hàng có sẵn → `Thêm vào giỏ` / `Mua ngay` |
+| Thùng theo yêu cầu (`/dashboard/custom`) | mẫu đã lưu + tự nhập quy cách → giỏ |
+| Giỏ hàng (`/dashboard/cart`) + Thanh toán (`/dashboard/checkout`) | chọn dòng, chọn địa chỉ đã lưu, đặt |
 
-#### Hand-off từ tư vấn
-
-| Chi tiết | Code |
-|---|---|
-| Điều kiện hiện | `PrintHandoffNotice` trả `null` nếu không có `mockupUrl`/`dielineUrl` |
-| Copy | `Đã duyệt mockup in · {printPositionLabel}`; có dieline → `Kèm file khuôn bế có hình in. Xem khuôn bế`; không có → `Xưởng sẽ gửi khuôn bế chốt trước khi sản xuất.` |
-| Prefill | `defaultItems` / `itemFromHandoff` (`order-utils.ts`): dòng 1 được điền sẵn, `hasPrinting: Boolean(handoff.mockupUrl)` |
-| ⚠️ Hành vi chủ đích | `printingSpecsFor` vẫn gửi `mockup_url` + `dieline_url` **kể cả khách bỏ tick "Cần in ấn"** — comment trong code: "Mockup/dieline là bằng chứng khách đã duyệt" |
-| Bảo vệ | `getPrintHandoff` null-hoá khi `consultation.customer_id` tồn tại mà ≠ `user.id` |
-
-#### Ghi chú
-
-| Aspect | Quyết định |
-|---|---|
-| **Layout** | 2 cột với aside sticky `24rem`; ở `variant="modal"` bỏ sticky, summary inline |
-| **Không có màn thanh toán** | ⚠️ Route `/payment` **không tồn tại**. Thanh toán = modal M1 sau khi tạo đơn. Doc cũ mô tả một màn `/payment` riêng là sai |
-| **Tiền** | Mọi con số trên màn là **tạm tính client-side**; server tính lại `subtotal`/`total_amount`/`deposit_amount` khi nhận đơn (`docs/ARCHITECTURE.md`) |
+Hành vi khác biệt so với bản cũ: màn kết quả tư vấn không còn `Đặt hàng ngay` →
+`/order?consultation=…`; thay bằng đúng hai nút giỏ hàng, và **cần đăng nhập**
+(trước đây `/order` mở cho khách lạ, chỉ submit mới chặn).
 
 ---
 
@@ -901,7 +819,7 @@ theo pathname — xem L2 để biết vì sao customer login vào được `/sta
 
 ### 12. My Orders (`/dashboard/orders`) ✅
 
-**Route**: `/dashboard/orders?status=&page=&search=&modal=create&orderId=`
+**Route**: `/dashboard/orders?status=&page=&search=&orderId=`
 **Code**: `src/app/(auth)/dashboard/orders/page.tsx` (RSC) + `order-ui.tsx`
 (`OrdersToolbar`, `OrderCard`, `OrdersPagination`, `OrdersEmptyState`, `OrdersErrorState`)
 + `order-modals.tsx` (M7) + `loading.tsx` (skeleton)
@@ -909,9 +827,10 @@ theo pathname — xem L2 để biết vì sao customer login vào được `/sta
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ H1 "Đơn hàng của tôi"                        [Tạo đơn hàng]   │
+│ H1 "Đơn hàng của tôi"        [Mua hàng] [Theo yêu cầu]        │
 │ "Theo dõi đơn hàng đóng gói và trạng thái thanh toán."        │
-│   (nút này mở modal ?modal=create — không sang /order)        │
+│   (hai link sang /shop + /dashboard/custom — không còn modal   │
+│    tạo đơn; đơn chỉ sinh ra từ giỏ hàng)                       │
 │                                                               │
 │ [input Tìm theo mã đơn hàng] [Tìm kiếm]                       │
 │ (Tất cả)(Chờ xử lý)(Đang duyệt)(Đã xác nhận)(Đang sản xuất)   │
@@ -934,11 +853,11 @@ theo pathname — xem L2 để biết vì sao customer login vào được `/sta
 | Filter pills | `FILTERS` trong `order-ui.tsx`: `Tất cả` `Chờ xử lý` `Đang duyệt` `Đã xác nhận` `Đang sản xuất` `Hoàn thành` `Đã giao` `Đã hủy`. Là **link URL** (`?status=`), không phải client state — đổi filter tự reset `page` |
 | Search | form GET thường (`<form action={pathname}>`), input `name="search"`, nút `Tìm kiếm` |
 | Pagination | `getCustomerOrders` `limit` mặc định 10, max 50. `OrdersPagination` return `null` khi `totalPages <= 1`; `Trước` / `Sau` dùng `aria-disabled` + `pointer-events-none opacity-50`; label `Trang {page} / {totalPages}` |
-| `Tạo đơn hàng` | link `?modal=create` → mở `CreateOrderModal` (M7) chứa `OrderForm variant="modal"` — ⚠️ **không** điều hướng sang `/order` |
+| `Mua hàng` / `Thùng theo yêu cầu` | hai link thường → `/shop`, `/dashboard/custom`. `CreateOrderModal` đã **xoá** cùng form `/order` |
 | `Chi tiết` | link `?orderId=<uuid>` → mở `OrderQuickViewModal` (M7) **ngay trên danh sách**, không sang route detail |
 | `Hủy` | `CancelOrderButton` → M2, hiện khi `canCustomerCancelOrder(status)` ⇔ `status === 'pending'` |
 | `Đặt lại` | chỉ hiện khi `showReorder` → ⚠️ `/dashboard/orders` **không** truyền prop này nên nút không bao giờ hiện ở đây (chỉ hiện ở §14) |
-| Empty | `OrdersEmptyState` title `Chưa có đơn hàng`, description `Các đơn hàng bạn tạo từ form đặt hàng hoặc đặt lại sẽ xuất hiện tại đây.` action `/order` |
+| Empty | `OrdersEmptyState` title `Chưa có đơn hàng`, description `Đơn đặt từ giỏ hàng hoặc đặt lại sẽ xuất hiện tại đây.` (không còn actionHref) |
 | Error | `OrdersErrorState` → `ErrorState` (`Không thể tải dữ liệu`) |
 | Summary | `getItemSummary` → `"${first.product_name} x${first.quantity} +N sản phẩm khác"` |
 | Ngày | `formatDateTime` — `dateStyle:'medium'`, `timeStyle:'short'`, `Asia/Ho_Chi_Minh` |
@@ -1163,8 +1082,8 @@ Spec ý đồ (dựa trên dữ liệu đã có trong DB + `src/lib/data/consult
 │ Bảng: Khách · Sản      │     │ [Chấp nhận] [Yêu cầu sửa]     │
 │  phẩm · Kích thước ·   │     │  ⚠ Chưa có API cho 2 action   │
 │  Giá ước tính · [Xem]  │     │  này. Chuyển sang đơn = khách │
-└───────────────────────┘     │  tự đặt từ                     │
-   Nguồn: bảng consultations   │  /order?consultation=<id>     │
+└───────────────────────┘     │  tự đặt qua giỏ hàng            │
+   Nguồn: bảng consultations   │  (/dashboard/custom hoặc /shop)│
    (status, ai_recommendation, └────────────────────────────── ┘
     mockup_url, dieline_url)
 ```
@@ -1268,8 +1187,8 @@ Root `src/app/layout.tsx`: font `Inter`, `<html lang="vi">`, metadata title
 └────────────────────────────────────────────────────────────────┘
 ```
 
-Dùng bởi: `/`, `/consultation`, `/consultation/result`, `/order`, `/pricing`,
-`/dieline-lab`, `/about`.
+Dùng bởi: `/`, `/consultation`, `/consultation/result`, `/shop`, `/order` (chỉ
+redirect), `/pricing`, `/dieline-lab`, `/about`.
 
 `navLinks` (`src/components/layout/navbar.tsx`) đúng 4 mục: `Trang chủ` `/` ·
 `Tư vấn` `/consultation` · `Về chúng tôi` `/about` · `Bảng giá` `/pricing`.
@@ -1366,7 +1285,7 @@ sau."`, icon `WarningCircle`, khối `border-red-200 bg-red-50 p-4`.
 ### Loading Skeleton ✅
 `ProfileSkeleton` (`dashboard/profile/page.tsx`), `orders/loading.tsx`, skeleton
 `animate-pulse` trong `LoadingState` của `LiveResultPanel`. ⚠️ Không có `loading.tsx` cho
-`/consultation`, `/order`, `/pricing`, `/about`.
+`/consultation`, `/shop`, `/pricing`, `/about`, `/dashboard/custom`, `/dashboard/cart`.
 
 ### Modal — `src/components/ui/modal.tsx` ✅
 `@base-ui/react/dialog`. Props `title`, `description`, `size` (`default`→`max-w-lg`,
@@ -1395,7 +1314,9 @@ Sinh từ `find src/app -name 'page.tsx'` — **22 route**.
 | 3 | `/consultation` | `src/app/(public)/consultation/page.tsx` | L1 | ✅ |
 | 4 | `/consultation/result` | `src/app/(public)/consultation/result/page.tsx` | L1 | ✅ ⚠️ **orphan** — không link nội bộ |
 | 5 | `/dieline-lab` | `src/app/(public)/dieline-lab/page.tsx` | L1 | ✅ ⚠️ **orphan** — không link nội bộ |
-| 6 | `/order` | `src/app/(public)/order/page.tsx` | L1 | ✅ (submit cần login) |
+| 6 | `/order` | `src/app/(public)/order/page.tsx` | L1 | ✅ chỉ còn `redirect('/dashboard/custom')` |
+| 6b | `/shop` | `src/app/(public)/shop/page.tsx` | L1 | ✅ hàng có sẵn + add cart / mua ngay |
+| 6c | `/consultation/stock` | `src/app/(public)/consultation/stock/page.tsx` | L1 | ✅ AI tìm hàng kho khớp |
 | 7 | `/pricing` | `src/app/(public)/pricing/page.tsx` | L1 | ✅ |
 | 8 | `/login` | `src/app/(guest)/login/page.tsx` | L4 | ✅ |
 | 9 | `/register` | `src/app/(guest)/register/page.tsx` | L4 | ✅ |
@@ -1429,6 +1350,14 @@ Sinh từ `find src/app -name 'page.tsx'` — **22 route**.
 | `/api/orders/[id]/payment` | GET/PATCH | ✅ server-side, UI chưa gọi |
 | `/api/orders/[id]/status` | GET/PATCH | ✅ server-side, UI chưa gọi |
 | `/api/products` | GET/POST | 🚧 **501** `Under development` |
+| `/api/cart` | GET/POST | ✅ giỏ hàng; POST nhận 3 nhánh custom (consultationId \| savedProductId \| custom) hoặc stock |
+| `/api/cart/[id]` | PATCH/DELETE | ✅ `PATCH {quantity}` và/hoặc `{custom}` |
+| `/api/cart/count` | GET | ✅ badge navbar |
+| `/api/checkout` | POST | ✅ tạo đơn từ dòng giỏ; địa chỉ đọc từ DB, không nhận text từ client |
+| `/api/addresses` | GET/POST | ✅ list / ensure-default từ hồ sơ |
+| `/api/addresses/[id]` | PATCH/DELETE | ✅ sửa, set-default, xoá |
+| `/api/saved-products` | GET/POST | ✅ list / lưu kết quả tư vấn |
+| `/api/saved-products/[id]` | DELETE | ✅ UI: `Xoá` ở `/dashboard/custom` |
 | `/api/reorder` | POST | ✅ |
 | `/api/upload` | POST | ✅ purposes: `logo`, `reference`, `payment-proof`, `order-file` |
 
@@ -1439,7 +1368,13 @@ Sinh từ `find src/app -name 'page.tsx'` — **22 route**.
 | `src/features/dieline/` | `DielinePreview.tsx` |
 | `src/features/products/` | `components/CatalogTable.tsx`, `components/PriceTierCards.tsx`, `types.ts`, `utils.ts` |
 | `src/app/(public)/consultation/` | Toàn bộ UI tư vấn + print mockup (`consultation-*.tsx`, `print-mockup-*.tsx`, `consultation-schema.ts`, `step-indicator.tsx`) |
-| `src/app/(public)/order/` | Toàn bộ form đơn (`order-*.tsx`, `order-schema.ts`, `order-types.ts`, `order-utils.ts`, `print-handoff-notice.tsx`) |
+| `src/app/(public)/order/` | Chỉ còn `page.tsx` (redirect) — form đơn đã nghỉ, xem §7 |
+| `src/app/(public)/shop/` | `page.tsx`, `product-card.tsx` |
+| `src/app/(auth)/dashboard/cart/` | `cart-view.tsx`, `cart-line-row.tsx`, `custom-line-editor.tsx` |
+| `src/app/(auth)/dashboard/checkout/` | `checkout-form.tsx`, `checkout-parts.tsx` |
+| `src/app/(auth)/dashboard/custom/` | `page.tsx`, `saved-profile-cards.tsx`, `custom-spec-form.tsx` |
+| `src/components/cart/` | `cart-events.ts`, `use-add-to-cart.ts`, `custom-cart-actions.tsx` |
+| `src/components/checkout/` | `address-picker.tsx`, `address-form-modal.tsx` |
 | `src/components/modals/` | 7 file M1–M6 (tên PascalCase) |
 | `src/components/layout/` | `navbar.tsx`, `footer.tsx`, `DashboardNav.tsx`, `StaffSidebar.tsx` |
 | `src/components/ui/` | 15 primitive (`modal`, `status-badge`, `status-timeline`, `empty-state`, `error-state`, `card`, `button`, `input`, `label`, `select`, `textarea`, `badge`, `separator`, `FadeIn`) |

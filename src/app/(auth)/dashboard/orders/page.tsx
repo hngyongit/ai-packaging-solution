@@ -3,10 +3,9 @@ import { redirect } from 'next/navigation'
 
 import { buttonVariants } from '@/components/ui/button'
 import { getCurrentProfile, getCustomerOrderById, getCustomerOrders, isOrderStatus, parsePage } from '@/lib/data/orders'
-import { getActiveProductOptions } from '@/lib/data/products'
 import { cn } from '@/lib/utils'
 import { OrdersUrlModals } from './order-modals'
-import { buildHref, OrderCard, OrdersEmptyState, OrdersErrorState, OrdersPagination, OrdersToolbar } from './order-ui'
+import { OrderCard, OrdersEmptyState, OrdersErrorState, OrdersPagination, OrdersToolbar } from './order-ui'
 
 type OrdersPageProps = {
   searchParams: Record<string, string | string[] | undefined>
@@ -28,7 +27,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       search: getParam(params.search),
       limit: 10,
     })
-    const products = await getActiveProductOptions()
     const orderId = getParam(params.orderId)
     const selectedOrder = orderId && UUID_PATTERN.test(orderId) ? await getCustomerOrderById(profile.id, orderId) : null
 
@@ -39,13 +37,15 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Đơn hàng của tôi</h1>
             <p className="mt-1 text-sm text-muted-foreground">Theo dõi đơn hàng đóng gói và trạng thái thanh toán.</p>
           </div>
-          <Link
-            href={buildHref('/dashboard/orders', params, { modal: 'create', orderId: null })}
-            className={cn(buttonVariants({ size: 'lg' }), 'w-fit')}
-            scroll={false}
-          >
-            Tạo đơn hàng
-          </Link>
+          {/* Đơn chỉ tạo qua giỏ hàng — hai cửa vào mua, không còn form tạo đơn. */}
+          <div className="flex flex-wrap gap-2">
+            <Link href="/shop" className={cn(buttonVariants({ size: 'lg' }), 'w-fit')}>
+              Mua hàng
+            </Link>
+            <Link href="/dashboard/custom" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'w-fit')}>
+              Thùng theo yêu cầu
+            </Link>
+          </div>
         </div>
 
         <OrdersToolbar pathname="/dashboard/orders" searchParams={params} activeStatus={activeStatus} />
@@ -59,7 +59,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         ) : (
           <OrdersEmptyState
             title="Chưa có đơn hàng"
-            description="Các đơn hàng bạn tạo từ form đặt hàng hoặc đặt lại sẽ xuất hiện tại đây."
+            description="Đơn đặt từ giỏ hàng hoặc đặt lại sẽ xuất hiện tại đây."
           />
         )}
 
@@ -70,7 +70,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           totalPages={pagination.totalPages}
         />
 
-        <OrdersUrlModals products={products} selectedOrder={selectedOrder} />
+        <OrdersUrlModals selectedOrder={selectedOrder} />
       </div>
     )
   } catch (error) {

@@ -1,4 +1,4 @@
-import { type ProductOption } from '@/app/(public)/order/order-types'
+import { type ProductOption } from '@/features/products/types'
 
 // Kiểu dáng thùng khách chọn trong form — bên dưới là toàn bộ lựa chọn hợp lệ.
 // Box style is OPTIONAL: khi bỏ trống, AI tự quyết định (mặc định đối khẩu RSC/A1).
@@ -69,7 +69,37 @@ export type AIRecommendation = {
 
 export type { ProductOption }
 
+/** Dòng hàng trong kho đưa vào bộ tìm kiếm — cần quy cách + tồn kho thật. */
+export type StockOption = {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  basePrice: number
+  availableLayers: number[]
+  maxDimensions: { length: number; width: number; height: number } | null
+  stockQuantity: number
+}
+
+export type StockMatch = {
+  productId: string
+  productCode: string
+  productName: string
+  reason: string
+  confidence: number
+  availableStock: number
+  /** Số thùng nên đặt = min(số khách cần, tồn kho). */
+  suggestedQuantity: number
+  unitPrice: number
+  outOfStock: boolean
+  /** Quy cách thùng kho — để khách tự đối chiếu với sản phẩm của mình. */
+  maxDimensions: { length: number; width: number; height: number } | null
+  availableLayers: number[]
+}
+
 export interface AIProvider {
   readonly name: string
   recommend(input: RecommendInput, catalog: ProductOption[]): Promise<AIRecommendation>
+  /** Xếp hạng thùng CÓ SẴN trong kho theo nhu cầu khách (tối đa `limit` kết quả). */
+  matchStock(input: RecommendInput, catalog: StockOption[]): Promise<StockMatch[]>
 }

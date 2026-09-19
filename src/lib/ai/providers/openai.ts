@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { z } from 'zod'
 
-import { BOX_STYLES, type AIProvider, type AIRecommendation, type BoxStyle, type PackagingProtection, type ProductOption, type RecommendInput } from '../types'
+import { applyReasons, scoreStock } from '../stock-match'
+import { BOX_STYLES, type AIProvider, type AIRecommendation, type BoxStyle, type PackagingProtection, type ProductOption, type RecommendInput, type StockMatch, type StockOption } from '../types'
 
 const packagingProtectionSchema = z.object({
   level: z.enum(['none', 'light', 'heavy']),
@@ -99,6 +100,44 @@ export class OpenAIProvider implements AIProvider {
       boxStyleImageUrl: null,
       estimatedTotalMin: num(parsed.estimatedTotalMin, parsed.estimatedUnitPriceMin * input.desiredQuantity),
       estimatedTotalMax: num(parsed.estimatedTotalMax, parsed.estimatedUnitPriceMax * input.desiredQuantity),
+    }
+  }
+
+  async matchStock(input: RecommendInput, catalog: StockOption[]): Promise<StockMatch[]> {
+    // thứ hạng/số liệu lấy từ scoreStock (deterministic, không cho AI bịa số);
+    // AI chỉ viết lại `reason` cho tự nhiên theo đúng ý khách.
+    const matches = scoreStock(input, catalog)
+    if (matches.length === 0) return matches
+
+    const reasonsSchema = z.object({
+      reasons: z.array(z.object({ productId: z.string(), reason: z.string().min(10) })),
+    })
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Bạn là tư vấn bán hàng carton. Với nhu cầu của khách và các mẫu thùng có sẵn đã được chọn ở dưới, viết lại trường reason cho TỪNG mẫu bằng tiếng Việt: 1–2 câu tự nhiên, gọi tên khách, nói vì sao mẫu này hợp (kích thước, số lớp, tồn kho, giá). KHÔNG thay đổi con số, KHÔNG thêm mẫu mới. Trả JSON đúng dạng {"reasons":[{"productId":"...","reason":"..."}]} với productId lấy nguyên văn từ danh sách.',
+          },
+          { role: 'user', content: JSON.stringify({ input, matches }) },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.5,
+      })
+
+      const raw = completion.choices[0]?.message?.content
+      if (!raw) return matches
+      const parsed = reasonsSchema.parse(JSON.parse(raw) as unknown)
+      return applyReasons(
+        matches,
+        Object.fromEntries(parsed.reasons.map((r) => [r.productId, r.reason]))
+      )
+    } catch {
+      // AI lỗi → vẫn trả kết quả deterministic, không chặn trang tư vấn.
+      return matches
     }
   }
 }

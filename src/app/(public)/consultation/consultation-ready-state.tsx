@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
-import { Button } from '@/components/ui/button'
+import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import type { AIRecommendation } from '@/lib/ai/types'
 
 import { Alternatives } from './consultation-alternatives'
+import { SaveAsTemplateButton } from './save-as-template-button'
 import { PrintMockupPanel } from './print-mockup-panel'
 
 export const vnd = (value: number) =>
@@ -93,19 +94,21 @@ export function ReadyState({ result }: { result: ReadyResult }) {
       <Alternatives alternatives={r.alternatives} compact />
 
       <div className="space-y-2 pt-1">
-        <Button
-          className="w-full"
+        <CustomCartActions
+          className="space-y-2"
           disabled={blockedByMockup}
-          onClick={() => window.location.assign(`/order?consultation=${result.consultationId}`)}
-        >
-          Đặt hàng ngay
-        </Button>
+          payload={{
+            kind: 'custom',
+            consultationId: result.consultationId,
+            productId: r.suggestedProductId ?? undefined,
+            quantity: r.moq,
+            hasPrinting: result.hasPrinting,
+          }}
+        />
         {blockedByMockup && (
           <p className="text-center text-[11px] text-gray-500">Tạo ảnh mockup để tiếp tục đặt hàng.</p>
         )}
-        <Button variant="ghost" className="w-full" onClick={() => window.location.assign('/dashboard')}>
-          Lưu để sau
-        </Button>
+        <SaveAsTemplateButton consultationId={result.consultationId} className="w-full" />
         <p className="text-center text-[11px] text-gray-400">
           Mã tư vấn: {result.consultationId.slice(0, 8).toUpperCase()} · Nhân viên sẽ xác nhận trong 24h
         </p>

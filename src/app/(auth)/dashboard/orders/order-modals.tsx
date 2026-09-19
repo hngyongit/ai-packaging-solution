@@ -3,8 +3,6 @@
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
-import { OrderForm } from "@/app/(public)/order/order-form"
-import { type ProductOption } from "@/app/(public)/order/order-types"
 import { PrintPreviewStrip } from "@/components/order/print-preview-strip"
 import { buttonVariants } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
@@ -22,11 +20,10 @@ import { cn } from "@/lib/utils"
 import { CancelOrderButton } from "./cancel-order-button"
 
 type OrdersUrlModalsProps = {
-  products: ProductOption[]
   selectedOrder: CustomerOrder | null
 }
 
-export function OrdersUrlModals({ products, selectedOrder }: OrdersUrlModalsProps) {
+export function OrdersUrlModals({ selectedOrder }: OrdersUrlModalsProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -39,12 +36,10 @@ export function OrdersUrlModals({ products, selectedOrder }: OrdersUrlModalsProp
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
-  const createOpen = searchParams.get("modal") === "create"
   const detailOpen = Boolean(selectedOrder && searchParams.get("orderId"))
 
   return (
     <>
-      <CreateOrderModal products={products} open={createOpen} onOpenChange={(open) => !open && closeModal()} />
       {selectedOrder ? (
         <OrderQuickViewModal order={selectedOrder} open={detailOpen} onOpenChange={(open) => !open && closeModal()} />
       ) : null}
@@ -134,29 +129,6 @@ function OrderQuickViewModal({
 
         {order.notes ? <p className="rounded-lg bg-blue-50 p-3 text-sm leading-6 text-blue-950">{order.notes}</p> : null}
       </div>
-    </Modal>
-  )
-}
-
-function CreateOrderModal({
-  products,
-  open,
-  onOpenChange,
-}: {
-  products: ProductOption[]
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  return (
-    <Modal
-      size="xl"
-      title="Tạo đơn hàng"
-      description="Chọn quy cách carton, thông tin liên hệ và gửi đơn để nhân viên duyệt."
-      contentClassName="bg-gray-50"
-      open={open}
-      onOpenChange={onOpenChange}
-    >
-      <OrderForm products={products} variant="modal" />
     </Modal>
   )
 }

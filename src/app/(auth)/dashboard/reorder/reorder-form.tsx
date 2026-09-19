@@ -99,7 +99,7 @@ export default function ReorderForm({ selectedOrder, recentOrders }: ReorderForm
           <div className="rounded-lg border border-dashed border-gray-300 px-4 py-12 text-center">
             <p className="font-medium text-foreground">Chưa có đơn hàng trước đó</p>
             <p className="mt-1 text-sm text-muted-foreground">Hãy tạo một đơn hàng trước, sau đó bạn có thể đặt lại từ đơn đó.</p>
-            <Link href="/order" className={cn(buttonVariants({ size: 'lg' }), 'mt-5')}>
+            <Link href="/dashboard/custom" className={cn(buttonVariants({ size: 'lg' }), 'mt-5')}>
               Tạo đơn hàng
             </Link>
           </div>

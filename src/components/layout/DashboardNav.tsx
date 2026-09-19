@@ -7,6 +7,8 @@ import {
   House,
   ClipboardText,
   ClockCounterClockwise,
+  Package,
+  ShoppingCart,
   User,
   SignOut,
 } from '@phosphor-icons/react'
@@ -15,6 +17,8 @@ import { useRouter } from 'next/navigation'
 
 const links = [
   { href: '/dashboard', label: 'Tổng quan', icon: House },
+  { href: '/dashboard/cart', label: 'Giỏ hàng', icon: ShoppingCart },
+  { href: '/dashboard/custom', label: 'Theo yêu cầu', icon: Package },
   { href: '/dashboard/orders', label: 'Đơn hàng', icon: ClipboardText },
   { href: '/dashboard/history', label: 'Lịch sử', icon: ClockCounterClockwise },
   { href: '/dashboard/profile', label: 'Hồ sơ', icon: User },

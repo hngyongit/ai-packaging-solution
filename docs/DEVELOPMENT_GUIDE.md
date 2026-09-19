@@ -30,9 +30,11 @@ Next.js Route Handlers (`app/api/*`) serve as the backend. No Express/Fastify/No
 src/
 ├── middleware.ts                  # Gate theo pathname (login), KHÔNG check role
 ├── app/                           # ROUTES ONLY — không business logic
-│   ├── (public)/                  # / , about, pricing, consultation, dieline-lab, order
+│   ├── (public)/                  # / , about, pricing, shop, consultation, dieline-lab
+│   │                              #  (order/ chỉ còn redirect → /dashboard/custom)
 │   ├── (guest)/                   # login, register
-│   ├── (auth)/dashboard/          # orders/[id], history, reorder, profile
+│   ├── (auth)/dashboard/          # cart, checkout, custom, orders/[id], history,
+│   │                              #  reorder, profile
 │   ├── (staff)/staff/             # ⚠️ toàn bộ đang render <UnderDevelopmentPage/>
 │   ├── api/                       # Route Handlers — thin, delegate xuống lib/data
 │   └── globals.css                # Design tokens (oklch CSS vars) + reveal utilities
@@ -42,12 +44,17 @@ src/
 ├── components/
 │   ├── ui/                        # primitives (base-ui + shadcn, style base-nova)
 │   ├── layout/  modals/  order/   # PascalCase cho shared component
+│   ├── consultation/              # fields.tsx — Section/Field/InlineError/BoxStylePicker/RadioGroup
+│   ├── cart/                      # use-add-to-cart.ts (add + buyNow), custom-cart-actions.tsx
+│   └── checkout/                  # address-picker.tsx, address-form-modal.tsx
 ├── lib/
 │   ├── supabase/                  # client.ts (browser) · server.ts (createClient / createAdminClient)
-│   ├── data/                      # ← DATA ACCESS: consultations, orders, order-shared, products, boxes
+│   ├── data/                      # ← DATA ACCESS: consultations, orders{-create,-list,-status,-stock},
+│   │                              #  order-shared, products{-admin}, boxes, cart{-add}, custom-spec,
+│   │                              #  addresses, saved-products, profile
 │   ├── ai/                        # index.ts (factory) · types.ts · mockup.ts · context.md (prompt) · providers/
 │   ├── dieline/                   # engine mm→SVG (index.ts, print-faces.ts) — thuần, không React
-│   ├── mockup/                    # request · generate · handoff — điều độ gen ảnh mockup
+│   ├── mockup/                    # request · generate — điều độ gen ảnh mockup
 │   ├── cloudinary/                # upload server-side (signed / preset)
 │   ├── images/                    # dimensions.ts
 │   └── config/                    # features · pricing · constants · print-positions
@@ -177,7 +184,7 @@ Thiếu env → `server.ts` ném `Error('NEXT_PUBLIC_SUPABASE_URL is not set')` 
 | `src/features/dieline/DielinePreview.tsx` | 428 | Viewer + controls + downloads; tách được khi UI ổn định |
 | `src/app/(public)/page.tsx` | 386 | Landing — từng section tách thành component được |
 | `src/app/api/reorder/route.ts` | 384 | Cần xuống `lib/data/` |
-| `src/app/api/orders/route.ts` | 341 | Cần xuống `lib/data/` |
+| `src/lib/data/cart.ts` | 300 | Đã chạm ngưỡng data file — logic mới vào `cart-add.ts` / `custom-spec.ts` |
 
 → Khi đụng các file này: không phình thêm; tách hoặc move logic xuống `lib/data/`.
 
@@ -324,7 +331,7 @@ Primitive hiện có trong `src/components/ui/`: `button, input, select, textare
 | **Server state** (DB data) | React Server Components + Supabase | No client cache needed. Fetch on server, render HTML |
 | **Form state** | React Hook Form + Zod | Performant, minimal re-renders, built-in validation |
 | **Global UI state** (auth, theme) | React Context (lightweight) | One context for auth, one for theme. No Redux |
-| **URL state** | `useSearchParams()` — bộ lọc/modal đơn hàng (`?modal=create`, `?orderId=` ở `order-modals.tsx`; `?status&page&search` ở `history/page.tsx`), `?id=` cho trang kết quả tư vấn, `?consultation=` cho print handoff | Shareable, back-button safe |
+| **URL state** | `useSearchParams()` — bộ lọc/modal đơn hàng (`?orderId=<id>` ở `order-modals.tsx`; `?status&page&search` ở `history/page.tsx`), `?id=` cho trang kết quả tư vấn, `?items=<csv cartItemId>` cho checkout | Shareable, back-button safe |
 | **Complex client state** (future) | Zustand (only if needed) | Chưa cài. Chỉ thêm nếu Server Components + Context không đủ |
 
 ⚠️ **Không còn "consultation step" trong URL.** Tư vấn là MỘT trang: form cột trái, kết quả AI + panel mockup render inline ở cột phải (`consultation-form.tsx`, `consultation-live-result.tsx`). Bản full-page chia sẻ được là route riêng `/consultation/result?id=`. Doc cũ mô tả `?step=result` / `?step=mockup` — **route đó không tồn tại**.
@@ -343,7 +350,10 @@ Schema có sẵn — **import, đừng định nghĩa lại**:
 | Form | Client schema | Server schema |
 |---|---|---|
 | Tư vấn | `src/app/(public)/consultation/consultation-schema.ts` | `consultationInputSchema` trong `src/lib/data/consultations.ts` |
-| Đặt hàng | `src/app/(public)/order/order-schema.ts` | validate trong `src/app/api/orders/route.ts` |
+| Thêm giỏ | `addSchema` trong `src/app/api/cart/route.ts` | `src/lib/data/cart-add.ts` (+ `customSpecSchema` ở `lib/data/custom-spec.ts`) |
+| Checkout | `checkoutSchema` trong `checkout-form.tsx` | `src/app/api/checkout/route.ts` |
+| Quy cách tự nhập | `manualSchema` trong `custom-spec-form.tsx` | `POST /api/cart` (cùng `customSpecSchema`) |
+| Địa chỉ | `address-form-modal.tsx` | `src/app/api/addresses/[id]/route.ts` |
 
 Field thật của form tư vấn (`consultation-schema.ts`): `productType`, `boxStyle` (optional enum — bỏ trống để AI tự chọn), `lengthCm`, `widthCm`, `heightCm`, `weightGrams`, `desiredQuantity`, `hasPrinting`, `notes` (≤100). Kích thước dùng `z.coerce.number()` vì input HTML trả string.
 

@@ -100,7 +100,8 @@ CREATE POLICY "public_insert_consultation"
 >
 > Quyền thật sự được enforce **ở tầng ứng dụng**: route handler đọc `profiles.role`
 > bằng `createAdminClient()` (bypass RLS) rồi tự lọc — `isStaff()` trong
-> `src/app/api/upload/route.ts`, `src/app/api/orders/route.ts`,
+> `src/app/api/upload/route.ts`, `src/lib/data/orders-create.ts:96`
+> (`customerId` từ body chỉ staff được truyền — khách đặt cho chính mình),
 > `src/app/api/orders/[id]/status/route.ts`.
 >
 > Trước khi dựa vào RLS cho staff, chọn một trong hai:
@@ -163,7 +164,7 @@ Hai điểm dễ hiểu sai nếu đọc code mẫu kiểu "all-in-one insert":
 | DB data (customer own) | ✅ Yes | RLS restricts to their rows |
 | DB data (other customers) | ❌ No | RLS blocks cross-user access |
 | DB data (staff only) | ❌ No | ⚠️ Not RLS — application-level `isStaff()` (xem §2.1) |
-| Print assets (mockup/dieline) | ✅ Yes | Public Cloudinary URLs; access guarded by the consultation id being unguessable + ownership check in `lib/mockup/handoff.ts` |
+| Print assets (mockup/dieline) | ✅ Yes | Public Cloudinary URLs; access guarded by the consultation id being unguessable + ownership check khi thêm giỏ (`consultation.customer_id` đã có mà khác `user.id` → 403, `src/lib/data/cart-add.ts`) |
 
 ### 2.4 Security Checklist
 
@@ -196,7 +197,7 @@ export default async function PricingPage() {
 }
 ```
 
-> Trang chủ `src/app/(public)/page.tsx` là **Client Component tĩnh** (`'use client'`) — không query DB, nội dung hard-code. Nơi đọc danh mục thật là `/pricing` (`getCatalogProducts`) và `/order` (`getActiveProductOptions`), cả hai qua `lib/data/products.ts`.
+> Trang chủ `src/app/(public)/page.tsx` là **Client Component tĩnh** (`'use client'`) — không query DB, nội dung hard-code. Nơi đọc danh mục thật là `/pricing` (`getCatalogProducts`), `/shop` (`getStockedProducts`) và `/dashboard/custom` (`getActiveProductOptions` — chọn sản phẩm cơ sở làm neo giá), tất cả qua `lib/data/products.ts`.
 
 ### 3.2 Form Submission (Consultation Request)
 
@@ -259,8 +260,13 @@ Client Form ──► POST /api/ai/recommend ──► Route Handler
                                     POST /api/ai/mockup ──► khuôn bế + ảnh mockup
                                                   │
                                                   ▼
-                                    POST /api/orders ──► Created
-                                    (status: pending, cần đăng nhập)
+                    [Thêm vào giỏ] POST /api/cart {kind:'custom', consultationId}
+                    [Mua ngay]     ──► /dashboard/checkout?items=<cartItemId>
+                                                  │
+                                                  ▼
+                                    POST /api/checkout ──► Created
+                                    (status: pending; cart + checkout nằm sau
+                                     middleware /dashboard nên bắt buộc đăng nhập)
 ```
 
 Không có bước auth ở bước tư vấn — `consultations.customer_id` để NULL kể cả khi người dùng đã đăng nhập (xem §2.2).
@@ -646,8 +652,8 @@ export const VOLUME_TIERS = [
 ] as const
 ```
 
-Đổi ngưỡng cọc 5M → 3M = sửa một dòng. Consumers: `src/app/api/orders/route.ts` (tính
-`deposit_amount`), `src/features/products/components/CatalogTable.tsx` + `PriceTierCards.tsx`
+Đổi ngưỡng cọc 5M → 3M = sửa một dòng. Consumers: `src/lib/data/orders-create.ts` (tính
+`deposit_amount` — cả `/api/orders` lẫn `/api/checkout` gọi chung hàm này), `src/features/products/components/CatalogTable.tsx` + `PriceTierCards.tsx`
 (cột giá theo tier ở `/pricing`) — cùng đọc một nguồn nên bảng giá và engine tính tiền không
 lệch nhau.
 
