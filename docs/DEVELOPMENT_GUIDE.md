@@ -264,7 +264,7 @@ Before creating a new component, hook, or utility:
 | `AI_IMAGE_MODEL` | Mockup image model, default `qwen-image-3.0` | Public |
 | `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | `lib/cloudinary/upload.ts` (signed) | 🔒 Secret |
 | `CLOUDINARY_UPLOAD_PRESET` | Tùy chọn — đặt vào → upload unsigned, bỏ HMAC | 🔒 Secret |
-| `NEXT_PUBLIC_SITE_URL` | ⚠️ có trong `.env.example` nhưng **code chưa đọc** | ✅ Public |
+| `NEXT_PUBLIC_SITE_URL` | `register/page.tsx` `publicOrigin()` — link confirm email trỏ về domain deploy (prod); dev rớt về `window.location.origin` | ✅ Public |
 
 `.env.example` là danh sách biến thật — nguồn chuẩn nếu doc này và code lệch nhau.
 
