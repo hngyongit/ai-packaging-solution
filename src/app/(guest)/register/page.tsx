@@ -36,13 +36,41 @@ function publicOrigin() {
   return window.location.origin.replace(/\/$/, '')
 }
 
+// Supabase gửi mail ĐỒNG BỘ trong /signup. SMTP treo (cấu hình sai / provider chặn
+// IP datacenter) → request treo tới timeout edge → 504, và vì GoTrue rollback nên
+// KHÔNG có row, KHÔNG có mail. Đây là thất bại thật, KHÔNG được diễn giải thành
+// "đã gửi". 504 ở đây = "hệ thống mail lỗi, thử lại sau", không phải "check inbox".
+function isMailLatencyError(error: unknown) {
+  const err = error as { status?: number; code?: string; message?: string } | null
+  if (!err) return false
+  if (err.status === 502 || err.status === 503 || err.status === 504) return true
+  if (err.code === 'AuthRetryableFetchError') return true
+  const message = (err.message ?? '').toLowerCase()
+  return (
+    message.includes('upstream request timeout') ||
+    message.includes('gateway time') ||
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('load failed')
+  )
+}
+
+// "Email already registered" KHÔNG hàm ý đang chờ xác thực — có thể tài khoản đã
+// confirmed sẵn. Đừng tự diễn giải thành "đã gửi mail"; chỉ đưa ra 2 đường và để
+// auth.resend trả lời thật (nó không gửi gì nếu email đã confirmed).
+function isDuplicateEmailError(error: unknown) {
+  const message = ((error as { message?: string } | null)?.message ?? '').toLowerCase()
+  return message.includes('already registered') || message.includes('already exists')
+}
+
 export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
   const [showPw, setShowPw] = useState(false)
   const [showConfirmPw, setShowConfirmPw] = useState(false)
   const [serverError, setServerError] = useState('')
-  const [emailSentTo, setEmailSentTo] = useState('')
+  const [pending, setPending] = useState<{ email: string; sent: boolean } | null>(null)
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const {
     register,
     handleSubmit,
@@ -51,6 +79,10 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
   })
 
+  function confirmUrl() {
+    return `${publicOrigin()}/api/auth/callback?next=/dashboard`
+  }
+
   async function onSubmit({ name, email, phone, password }: RegisterForm) {
     setServerError('')
     const { data, error } = await supabase.auth.signUp({
@@ -58,38 +90,97 @@ export default function RegisterPage() {
       password,
       options: {
         data: { full_name: name, phone },
-        emailRedirectTo: `${publicOrigin()}/api/auth/callback?next=/dashboard`,
+        emailRedirectTo: confirmUrl(),
       },
     })
+    // 504 = hệ thống mail lỗi (SMTP treo), GoTrue đã rollback → chưa có tài khoản.
+    // Báo thật, cho bấm lại; ĐỪNG đưa vào màn "check inbox" vì không mail nào đi.
+    if (error && isMailLatencyError(error)) {
+      setServerError(
+        'Không thể gửi email xác thực lúc này (máy chủ mail phản hồi quá chậm). ' +
+          'Vui lòng thử lại sau ít phút.',
+      )
+      return
+    }
     if (error) {
+      // Email đã có tài khoản (có thể đã confirmed) → không khẳng định đã gửi mail.
+      // Cho khách quyền bấm "Gửi lại email"; resend là phép thử thật.
+      if (isDuplicateEmailError(error)) {
+        setPending({ email, sent: false })
+        return
+      }
       setServerError(error.message)
       return
     }
-    // Row profiles do user tự sinh từ trigger handle_new_user (đọc user_metadata
-    // ở trên) — client không upsert được vì profiles không có INSERT policy.
-    // Bật "Confirm email" → chưa có session, dừng ở màn hướng dẫn check mail.
+    // Row profiles do trigger handle_new_user sinh (profiles không có INSERT
+    // policy). Bật "Confirm email" → chưa có session, dừng ở màn hướng dẫn.
     if (!data.session) {
-      setEmailSentTo(email)
+      setPending({ email, sent: true })
       return
     }
     router.push('/dashboard')
     router.refresh()
   }
 
-  if (emailSentTo) {
+  async function resendConfirmation() {
+    if (!pending) return
+    setResendState('sending')
+    setServerError('')
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: pending.email,
+      options: { emailRedirectTo: confirmUrl() },
+    })
+    if (error && !isMailLatencyError(error)) {
+      setResendState('idle')
+      setServerError(error.message)
+      return
+    }
+    setResendState('sent')
+    setPending({ email: pending.email, sent: true })
+  }
+
+  if (pending) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
         <Card className="w-full max-w-md">
           <CardContent className="space-y-4 pt-6 text-center">
             <Envelope className="mx-auto h-10 w-10 text-primary" />
-            <CardTitle className="text-xl">Vui lòng xác thực email</CardTitle>
+            <CardTitle className="text-xl">Xác thực email</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Chúng tôi đã gửi link xác thực tới <span className="font-medium text-foreground">{emailSentTo}</span>.
-              Mở link để hoàn tất đăng ký.
+              {pending.sent ? (
+                <>
+                  Chúng tôi đã gửi link xác thực tới{' '}
+                  <span className="font-medium text-foreground">{pending.email}</span>. Mở link (kiểm tra cả thư rác) để
+                  hoàn tất đăng ký.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-foreground">{pending.email}</span> đã có tài khoản. Bấm "Gửi lại
+                  email" nếu cần link xác thực, hoặc đăng nhập nếu đã kích hoạt.
+                </>
+              )}
             </p>
+            {serverError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {serverError}
+              </div>
+            ) : null}
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={resendState === 'sending'}
+              onClick={resendConfirmation}
+            >
+              {resendState === 'sending'
+                ? 'Đang gửi lại...'
+                : resendState === 'sent'
+                  ? 'Đã gửi lại email xác thực'
+                  : 'Chưa nhận được? Gửi lại email'}
+            </Button>
             <Link
               href="/login"
-              className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+              className={buttonVariants({ className: 'w-full' })}
             >
               Đã xác thực — Đăng nhập
             </Link>
