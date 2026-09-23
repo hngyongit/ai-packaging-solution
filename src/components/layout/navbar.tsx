@@ -57,6 +57,13 @@ export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
     }
   }, [user])
 
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/'
+    window.location.reload()
+  }
+
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
@@ -115,13 +122,21 @@ export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
               </Link>
             ) : null}
             {user ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors active:scale-[0.98]"
-              >
-                <User className="h-4 w-4" />
-                Dashboard
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors active:scale-[0.98]"
+                >
+                  <User className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Đăng xuất
+                </button>
+              </div>
             ) : (
               <>
                 <Link

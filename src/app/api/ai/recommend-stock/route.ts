@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAIProvider } from '@/lib/ai'
 import { consultationInputSchema, createConsultation } from '@/lib/data/consultations'
 import { getStockOptions } from '@/lib/data/products'
+import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 /**
  * Tư vấn mua thùng CÓ SẴN: xếp hạng SKU trong kho theo nhu cầu khách.
@@ -27,7 +28,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No stocked products available' }, { status: 404 })
     }
 
-    const { id } = await createConsultation(parsed.data)
+    const profile = await getAuthenticatedProfile()
+    if (!profile) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await createConsultation(parsed.data, profile.id)
     const matches = await getAIProvider().matchStock(parsed.data, catalog)
 
     return NextResponse.json({ consultationId: id, matches }, { status: 201 })

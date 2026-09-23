@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils'
 import { CancelOrderButton } from '../cancel-order-button'
 import { PaymentBadge, StatusBadge } from '../order-ui'
+import { PayNowButton } from './pay-now-button'
 
 type OrderDetailPageProps = {
   params: { id: string }
@@ -140,6 +141,10 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </Card>
 
           <div className="flex flex-wrap gap-2">
+            {/* PayOS payment button — only show for unpaid orders */}
+            {order.payment_status !== 'paid' && Number(order.total_amount ?? 0) > 0 ? (
+              <PayNowButton orderId={order.id} paymentStatus={order.payment_status} />
+            ) : null}
             {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
             {canReorder ? (
               <Link href={`/dashboard/reorder?id=${order.id}`} className={cn(buttonVariants({ size: 'lg' }))}>

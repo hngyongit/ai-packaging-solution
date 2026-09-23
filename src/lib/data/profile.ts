@@ -1,4 +1,5 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server'
+import type { NextRequest } from 'next/server'
 
 // Hồ sơ người dùng hiện tại — nguồn sự thật cho mọi route handler cần auth.
 export type Profile = {
@@ -8,8 +9,12 @@ export type Profile = {
   phone: string | null
 }
 
-export async function getAuthenticatedProfile(): Promise<Profile | null> {
-  const supabase = await createClient()
+/**
+ * Lấy profile của user đã xác thực.
+ * @param request - Optional NextRequest (dùng trong middleware để đọc cookies).
+ */
+export async function getAuthenticatedProfile(request?: NextRequest): Promise<Profile | null> {
+  const supabase = await createClient(request)
   const {
     data: { user },
   } = await supabase.auth.getUser()

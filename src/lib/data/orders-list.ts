@@ -29,7 +29,13 @@ const ORDER_SELECT = `
   consultation:consultations!orders_consultation_id_fkey (
     id,
     status,
-    product_type
+    product_type,
+    product_description,
+    product_weight,
+    notes,
+    sales_notes,
+    ai_recommendation,
+    ai_confidence
   )
 `
 

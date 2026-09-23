@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -31,14 +32,21 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Resolve authenticated profile (needed for role-based guards)
+  const profile = await getAuthenticatedProfile(request)
+
+  // Staff routes — require sales/admin role
+  if (pathname.startsWith('/staff')) {
+    if (!profile || !['sales', 'admin'].includes(profile.role)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Protected routes — redirect to login if not authed
   if (!user) {
     if (pathname.startsWith('/dashboard')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-    if (pathname.startsWith('/staff')) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)

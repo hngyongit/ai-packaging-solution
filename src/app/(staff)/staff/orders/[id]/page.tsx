@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarCheck, MapPin } from '@phosphor-icons/react/dist/ssr
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConsultationStatusBadge } from '@/components/ui/consultation-status-badge'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import { formatCurrency, formatDateTime, getPaymentMethodLabel, toNumber } from '@/lib/data/order-shared'
@@ -85,6 +86,40 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
           </Card>
 
           <StatusTimeline order={order} />
+
+          {/* Consultation context (if order was created from a consultation) */}
+          {order.consultation && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tư vấn liên quan</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-mono text-xs text-gray-500">
+                    #{order.consultation.id.slice(0, 8).toUpperCase()}
+                  </span>
+                  <StatusBadge status={getConsultationStatusLabel(order.consultation.status)} />
+                </div>
+                {order.consultation.product_description && (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium text-gray-500">Mô tả khách:</span>{' '}
+                    {order.consultation.product_description}
+                  </p>
+                )}
+                {order.consultation.sales_notes && (
+                  <blockquote className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                    {order.consultation.sales_notes}
+                  </blockquote>
+                )}
+                <Link
+                  href={`/staff/consultations/${order.consultation.id}`}
+                  className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'w-full')}
+                >
+                  Xem chi tiết tư vấn →
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -106,6 +141,17 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
               <div className="h-px bg-gray-200" />
               <Row label="Tổng cộng" value={formatCurrency(toNumber(order.total_amount))} strong />
               <Row label="Thanh toán" value={getPaymentMethodLabel(order.payment_method)} />
+              {/* PayOS payment info */}
+              {order.payos_payment_id ? (
+                <Row label="PayOS Transaction" value={order.payos_payment_id.slice(0, 12) + '…'} />
+              ) : null}
+              <Row label="Trạng thái thanh toán" value={
+                order.payment_status === 'paid' 
+                  ? '✅ Đã thanh toán' 
+                  : order.payment_status === 'deposit_paid' 
+                    ? '⏳ Đã đặt cọc' 
+                    : '❌ Chưa thanh toán'
+              } />
             </CardContent>
           </Card>
 
@@ -146,6 +192,20 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
       <span className={cn('text-gray-900', strong && 'text-base font-semibold')}>{value}</span>
     </div>
   )
+}
+
+function getConsultationStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: 'Chờ AI',
+    ai_processed: 'AI xử lý xong',
+    pending_review: 'Chờ review',
+    staff_reviewed: 'Nhân viên duyệt',
+    quoted: 'Đã báo giá',
+    converted: 'Đã chuyển đơn',
+    closed: 'Đã đóng',
+    cancelled: 'Đã hủy',
+  }
+  return labels[status] ?? status
 }
 
 function formatDims(dimensions: Record<string, unknown> | null) {

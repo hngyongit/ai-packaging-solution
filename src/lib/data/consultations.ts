@@ -57,11 +57,12 @@ export const consultationInputSchema = z.object({
 
 export type ConsultationInput = z.infer<typeof consultationInputSchema>
 
-export async function createConsultation(input: ConsultationInput): Promise<{ id: string }> {
+export async function createConsultation(input: ConsultationInput, customerId: string): Promise<{ id: string }> {
   const admin = await createAdminClient()
   const { data, error } = await admin
     .from('consultations')
     .insert({
+      customer_id: customerId,
       status: 'pending',
       product_type: input.productType,
       box_style: input.boxStyle ?? null,

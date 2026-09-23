@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
+import { Lightbulb, Package, ShieldCheck, UserCircle } from '@phosphor-icons/react'
 
 import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import type { AIRecommendation } from '@/lib/ai/types'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
@@ -28,7 +30,20 @@ export function ReadyState({ result }: { result: ReadyResult }) {
   // 'unavailable' = AI/Cloudinary chưa cấu hình → không chặn ở môi trường dev.
   const [mockupUrl, setMockupUrl] = useState<string | null>(null)
   const [mockupStatus, setMockupStatus] = useState('idle')
+  const [reviewRequested, setReviewRequested] = useState(false)
   const blockedByMockup = result.hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl
+
+  async function handleRequestReview() {
+    if (!result.consultationId) return
+    try {
+      await fetch(`/api/consultations/${result.consultationId}/request-review`, {
+        method: 'POST',
+      })
+      setReviewRequested(true)
+    } catch {
+      // silently fail — user can retry
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -94,6 +109,26 @@ export function ReadyState({ result }: { result: ReadyResult }) {
       <Alternatives alternatives={r.alternatives} compact />
 
       <div className="space-y-2 pt-1">
+        {/* Hành động 1: Gửi nhân viên xem xét */}
+        {!reviewRequested ? (
+          <button
+            type="button"
+            className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'w-full transition-colors')}
+            onClick={handleRequestReview}
+          >
+            <UserCircle className="mr-2 h-5 w-5" weight="duotone" />
+            Nhờ nhân viên xem giúp
+          </button>
+        ) : (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
+            <p className="text-sm font-medium text-emerald-800">✅ Đã gửi yêu cầu review</p>
+            <p className="mt-1 text-xs text-emerald-600">
+              Nhân viên sẽ phản hồi trong vòng 24h. Bạn vẫn có thể tạo đơn bất cứ lúc nào.
+            </p>
+          </div>
+        )}
+
+        {/* Hành động 2: Tạo đơn hàng (group) */}
         <CustomCartActions
           className="space-y-2"
           disabled={blockedByMockup}

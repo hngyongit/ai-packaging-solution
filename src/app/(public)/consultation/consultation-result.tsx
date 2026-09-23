@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
+import { CheckCircle, Lightbulb, Package, ShieldCheck, UserCircle } from '@phosphor-icons/react'
 
 import { CustomCartActions } from '@/components/cart/custom-cart-actions'
+import { buttonVariants } from '@/components/ui/button'
 import { type AIRecommendation } from '@/lib/ai/types'
+import { cn } from '@/lib/utils'
 
 import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
@@ -27,10 +29,23 @@ export function ConsultationResult({
 }) {
   const [mockupUrl, setMockupUrl] = useState<string | null>(initialMockup.mockupUrl)
   const [mockupStatus, setMockupStatus] = useState('idle')
+  const [reviewRequested, setReviewRequested] = useState(false)
   const r = recommendation
   const stars = Math.round(r.confidence * 5)
   // Chặn đặt hàng tới khi có mockup; 503 (chưa cấu hình AI) thì không chặn.
   const blockedByMockup = hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl
+
+  async function handleRequestReview() {
+    if (!consultationId) return
+    try {
+      await fetch(`/api/consultations/${consultationId}/request-review`, {
+        method: 'POST',
+      })
+      setReviewRequested(true)
+    } catch {
+      // silently fail — user can retry
+    }
+  }
 
   return (
     <section className="bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
@@ -151,6 +166,29 @@ export function ConsultationResult({
 
         {/* Actions — đơn chỉ được tạo qua giỏ hàng */}
         <div className="mt-6 space-y-3">
+          {/* Hành động 1: Gửi nhân viên xem xét */}
+          {!reviewRequested ? (
+            <button
+              type="button"
+              className={cn(
+                buttonVariants({ variant: 'outline', size: 'lg' }),
+                'w-full transition-colors'
+              )}
+              onClick={handleRequestReview}
+            >
+              <UserCircle className="mr-2 h-5 w-5" weight="duotone" />
+              Nhờ nhân viên xem giúp
+            </button>
+          ) : (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
+              <p className="text-sm font-medium text-emerald-800">✅ Đã gửi yêu cầu review</p>
+              <p className="mt-1 text-xs text-emerald-600">
+                Nhân viên sẽ phản hồi trong vòng 24h. Bạn vẫn có thể tạo đơn bất cứ lúc nào.
+              </p>
+            </div>
+          )}
+
+          {/* Hành động 2: Tạo đơn hàng (group) */}
           <CustomCartActions
             className="space-y-3"
             size="lg"
