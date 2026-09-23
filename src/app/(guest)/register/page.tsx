@@ -8,25 +8,41 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Envelope, Lock, User, Phone, Eye, EyeSlash } from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
-const registerSchema = z.object({
-  name: z.string().min(1, 'Vui lòng nhập họ tên'),
-  email: z.string().email('Email không hợp lệ'),
-  phone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  agree: z.literal(true, { errorMap: () => ({ message: 'Vui lòng đồng ý với điều khoản' }) }),
-})
+const registerSchema = z
+  .object({
+    name: z.string().min(1, 'Vui lòng nhập họ tên'),
+    email: z.string().email('Email không hợp lệ'),
+    phone: z.string().min(1, 'Vui lòng nhập số điện thoại'),
+    password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu'),
+    agree: z.literal(true, { errorMap: () => ({ message: 'Vui lòng đồng ý với điều khoản' }) }),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Mật khẩu nhập lại không khớp',
+  })
 type RegisterForm = z.infer<typeof registerSchema>
+
+// Link confirm/reset của Supabase phải trỏ về domain deploy, không phải localhost
+// mà Supabase mặc định lấy từ Site URL trong dashboard.
+function publicOrigin() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL
+  if (configured && !configured.includes('localhost')) return configured.replace(/\/$/, '')
+  return window.location.origin.replace(/\/$/, '')
+}
 
 export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
   const [showPw, setShowPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [emailSentTo, setEmailSentTo] = useState('')
   const {
     register,
     handleSubmit,
@@ -40,21 +56,47 @@ export default function RegisterPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, phone } },
+      options: {
+        data: { full_name: name, phone },
+        emailRedirectTo: `${publicOrigin()}/api/auth/callback?next=/dashboard`,
+      },
     })
     if (error) {
       setServerError(error.message)
       return
     }
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        full_name: name,
-        phone,
-      })
+    // Row profiles do user tự sinh từ trigger handle_new_user (đọc user_metadata
+    // ở trên) — client không upsert được vì profiles không có INSERT policy.
+    // Bật "Confirm email" → chưa có session, dừng ở màn hướng dẫn check mail.
+    if (!data.session) {
+      setEmailSentTo(email)
+      return
     }
     router.push('/dashboard')
     router.refresh()
+  }
+
+  if (emailSentTo) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="space-y-4 pt-6 text-center">
+            <Envelope className="mx-auto h-10 w-10 text-primary" />
+            <CardTitle className="text-xl">Vui lòng xác thực email</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Chúng tôi đã gửi link xác thực tới <span className="font-medium text-foreground">{emailSentTo}</span>.
+              Mở link để hoàn tất đăng ký.
+            </p>
+            <Link
+              href="/login"
+              className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+            >
+              Đã xác thực — Đăng nhập
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -121,6 +163,29 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Nhập lại mật khẩu</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPw ? 'text' : 'password'}
+                  className="pl-9 pr-9"
+                  autoComplete="new-password"
+                  {...register('confirmPassword')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirmPw ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPw ? <EyeSlash className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
 
             <div className="flex items-start gap-2">
