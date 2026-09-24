@@ -15,7 +15,7 @@ const productSchema = z.object({
   minDimensions: z
     .object({ length: z.number().positive(), width: z.number().positive(), height: z.number().positive() })
     .nullable()
-    .optional(),
+    .default(null),
   maxDimensions: z.object({ length: z.number().positive(), width: z.number().positive(), height: z.number().positive() }),
   availableLayers: z.array(z.number().int().positive()).min(1),
   basePrice: z.number().nonnegative(),

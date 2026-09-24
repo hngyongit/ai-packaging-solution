@@ -134,7 +134,7 @@ export function ContactForm({ consultationId, estimatedTotal }: ContactFormProps
           />
         </div>
 
-        {estimatedTotal > 0 && (
+        {estimatedTotal !== undefined && estimatedTotal > 0 && (
           <div className="rounded-md bg-white px-4 py-2 text-sm text-blue-800">
             💰 Tổng tiền ước tính:{' '}
             <span className="font-bold">

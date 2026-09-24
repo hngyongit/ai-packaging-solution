@@ -32,7 +32,7 @@ export const createOrderSchema = z.object({
       })
     )
     .min(1),
-  paymentMethod: z.enum(['cod', 'bank_transfer']).default('cod'),
+  paymentMethod: z.enum(['cod', 'bank_transfer', 'payos']).default('cod'),
   contactName: z.string().trim().min(1).max(120),
   contactPhone: z.string().trim().regex(/^\d{10}$/),
   contactEmail: z.string().trim().email(),
@@ -47,7 +47,7 @@ export type CreateOrderInput = {
   customerId: string
   consultationId?: string
   items: OrderItemInput[]
-  paymentMethod: 'cod' | 'bank_transfer'
+  paymentMethod: 'cod' | 'bank_transfer' | 'payos'
   contactName: string
   contactPhone: string
   contactEmail: string

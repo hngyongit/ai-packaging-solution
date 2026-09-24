@@ -27,7 +27,7 @@ export type ProductInput = {
   description?: string | null
   category: string
   boxType: string
-  minDimensions: { length: number; width: number; height: number } | null
+  minDimensions?: { length: number; width: number; height: number } | null
   maxDimensions: { length: number; width: number; height: number }
   availableLayers: number[]
   basePrice: number

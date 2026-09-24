@@ -23,7 +23,10 @@ export type CustomerConsultationRow = {
   ai_recommendation: AIRecommendation | null
   ai_suggested_dimensions: { length: number; width: number; height: number } | null
   ai_confidence: number | null
+  mockup_url: string | null
+  dieline_url: string | null
   created_at: string
+  updated_at: string
 }
 
 // Simple select without joins — RLS handles ownership via customer_id
@@ -45,7 +48,10 @@ const CONSULTATION_SELECT = `
   ai_recommendation,
   ai_suggested_dimensions,
   ai_confidence,
-  created_at
+  mockup_url,
+  dieline_url,
+  created_at,
+  updated_at
 `
 
 export async function listCustomerConsultations(

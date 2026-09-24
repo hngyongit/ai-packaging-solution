@@ -71,7 +71,7 @@ export function ConfirmationDialog({
       <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white shadow-xl">
         <div className={`rounded-t-lg border-b ${colors.bg} p-4`}>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{icons[variant]}</span>
+            <span className="text-2xl">{icons}</span>
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
         </div>

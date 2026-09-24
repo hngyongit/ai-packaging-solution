@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,7 +28,7 @@ type FormValues = z.infer<typeof schema>
  * Trang checkout cho stock consultation — user điền thông tin liên lạc
  * rồi tạo order với status pending để staff review.
  */
-export default function StockCheckoutPage() {
+function StockCheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const productId = searchParams.get('productId')
@@ -302,5 +302,13 @@ export default function StockCheckoutPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function StockCheckoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <StockCheckoutContent />
+    </Suspense>
   )
 }

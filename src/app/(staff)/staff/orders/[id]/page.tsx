@@ -106,7 +106,7 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
                   <span className="font-mono text-xs text-gray-500">
                     #{order.consultation.id.slice(0, 8).toUpperCase()}
                   </span>
-                  <StatusBadge status={getConsultationStatusLabel(order.consultation.status)} />
+                  <ConsultationStatusBadge status={order.consultation.status} />
                 </div>
                 {order.consultation.product_description && (
                   <p className="text-sm text-gray-700">
@@ -200,20 +200,6 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
       <span className={cn('text-gray-900', strong && 'text-base font-semibold')}>{value}</span>
     </div>
   )
-}
-
-function getConsultationStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    pending: 'Chờ AI',
-    ai_processed: 'AI xử lý xong',
-    pending_review: 'Chờ review',
-    staff_reviewed: 'Nhân viên duyệt',
-    quoted: 'Đã báo giá',
-    converted: 'Đã chuyển đơn',
-    closed: 'Đã đóng',
-    cancelled: 'Đã hủy',
-  }
-  return labels[status] ?? status
 }
 
 function formatDims(dimensions: Record<string, unknown> | null) {

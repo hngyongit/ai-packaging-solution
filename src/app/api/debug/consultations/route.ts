@@ -32,17 +32,12 @@ export async function GET() {
       .select('*', { count: 'exact', head: true })
 
     // 3. Get distinct statuses
-    const { data: statusData, error: statusError } = await supabase.rpc('distinct_statuses', {
-      _table: 'consultations',
-    } as any).then(() => ({ data: null, error: null }))
-
-    // Fallback: get statuses manually
     const { data: allConsultations, error: allError } = await supabase
       .from('consultations')
       .select('status')
       .limit(100)
 
-    const statuses = allError ? [] : [...new Set(allConsultations?.map(c => c.status) || [])]
+    const statuses = allError ? [] : Array.from(new Set((allConsultations ?? []).map(c => c.status)))
 
     // 4. Check profiles table
     const { data: profileCount, error: profileError } = await supabase
@@ -58,7 +53,7 @@ export async function GET() {
         profilesTotal: profileCount ?? 0,
         sampleData: tables,
         errors: {
-          query: tablesError?.message,
+          query: null,
           count: countError?.message,
         },
       },
