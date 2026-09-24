@@ -5,6 +5,8 @@ import { Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
 import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import type { AIRecommendation } from '@/lib/ai/types'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
@@ -94,6 +96,7 @@ export function ReadyState({ result }: { result: ReadyResult }) {
       <Alternatives alternatives={r.alternatives} compact />
 
       <div className="space-y-2 pt-1">
+        {/* Hành động: Tạo đơn hàng (group) */}
         <CustomCartActions
           className="space-y-2"
           disabled={blockedByMockup}

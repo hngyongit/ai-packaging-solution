@@ -5,6 +5,7 @@ import { BOX_STYLES, type BoxStyle } from '@/lib/ai/types'
 import { getBoxStyleMap, getBoxStyles } from '@/lib/data/boxes'
 import { consultationInputSchema, createConsultation, updateAIRecommendation } from '@/lib/data/consultations'
 import { getActiveProductOptions } from '@/lib/data/products'
+import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 function isBoxStyle(value: string | null | undefined): value is BoxStyle {
   return BOX_STYLES.some((s) => s === value)
@@ -26,7 +27,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No products available' }, { status: 404 })
     }
 
-    const { id } = await createConsultation(parsed.data)
+    const profile = await getAuthenticatedProfile()
+    if (!profile) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await createConsultation(parsed.data, profile.id)
 
     const provider = getAIProvider()
     let recommendation = await provider.recommend(parsed.data, catalog)

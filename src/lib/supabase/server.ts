@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 
 function getUrl() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,7 +15,22 @@ function getAnonKey() {
   return key
 }
 
-export async function createClient() {
+export async function createClient(request?: NextRequest) {
+  if (request) {
+    return createServerClient(getUrl(), getAnonKey(), {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+        },
+      },
+    })
+  }
+
   const cookieStore = await cookies()
 
   return createServerClient(getUrl(), getAnonKey(), {

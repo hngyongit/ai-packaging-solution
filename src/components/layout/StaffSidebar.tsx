@@ -10,16 +10,17 @@ import {
   Users,
   Cube,
   SignOut,
+  User,
 } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const links = [
   { href: '/staff', label: 'Tổng quan', icon: ChartBar },
-  { href: '/staff/consultations', label: 'Tư vấn', icon: ClipboardText },
   { href: '/staff/orders', label: 'Đơn hàng', icon: Package },
   { href: '/staff/customers', label: 'Khách hàng', icon: Users },
   { href: '/staff/products', label: 'Sản phẩm', icon: Cube },
+  { href: '/staff/profile', label: 'Hồ sơ', icon: User },
 ]
 
 export function StaffSidebar() {
@@ -35,11 +36,14 @@ export function StaffSidebar() {
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r border-gray-200 bg-white">
+      {/* Logo header */}
       <div className="p-4 border-b border-gray-200">
         <Link href="/staff" className="text-lg font-bold tracking-tight text-gray-900">
           Staff Panel
         </Link>
       </div>
+
+      {/* Navigation links */}
       <div className="flex-1 space-y-1 p-4">
         {links.map((link) => {
           const Icon = link.icon
@@ -60,6 +64,8 @@ export function StaffSidebar() {
           )
         })}
       </div>
+
+      {/* Logout footer */}
       <div className="border-t border-gray-200 p-4">
         <button
           onClick={handleLogout}

@@ -13,6 +13,7 @@ export type CreatedCheckoutOrder = {
   id: string
   order_code: string
   total_amount: number | string | null
+  payment_method: string | null
 }
 
 /** Màn hình cảm ơn sau khi đặt. */

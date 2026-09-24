@@ -1,4 +1,4 @@
-import { type EditableProduct } from '@/components/modals/ProductEditDrawer'
+import { type EditableProduct } from '@/components/modals/ProductEditModal'
 
 // Serialize từ DB (snake_case, DECIMAL có thể là string) cho bảng staff + map
 // sang drawer model. Tách khỏi products-table.tsx để component <200 dòng.
@@ -10,6 +10,7 @@ export type DbProductRow = {
   description: string | null
   category: string
   box_type: string
+  min_dimensions: { length: number; width: number; height: number } | null
   max_dimensions: { length: number; width: number; height: number } | null
   available_layers: number[] | null
   base_price: string | number | null
@@ -25,6 +26,7 @@ export function toEditable(row: DbProductRow): EditableProduct {
     name: row.name,
     category: row.category,
     boxType: row.box_type,
+    minDimensions: row.min_dimensions,
     dimensions: row.max_dimensions,
     basePrice: row.base_price != null ? Number(row.base_price) : null,
     description: row.description,

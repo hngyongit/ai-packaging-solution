@@ -87,6 +87,11 @@ export class OpenAIProvider implements AIProvider {
       temperature: 0.4,
     })
 
+    // Kiểm tra kỹ hơn trước khi đọc response
+    if (!completion?.choices?.[0]) {
+      throw new Error('AI API returned no choices — check model name, API key, or rate limits')
+    }
+
     const raw = completion.choices[0]?.message?.content
     if (!raw) throw new Error('AI returned empty response')
 

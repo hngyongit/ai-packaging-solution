@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { CheckCircle, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
-import { CustomCartActions } from '@/components/cart/custom-cart-actions'
+import { buttonVariants } from '@/components/ui/button'
 import { type AIRecommendation } from '@/lib/ai/types'
+import { cn } from '@/lib/utils'
 
 import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
 import { PrintMockupPanel, EMPTY_MOCKUP, type MockupAssets } from './print-mockup-panel'
 import { StepIndicator } from './step-indicator'
+import { ContactForm } from './contact-form'
 
 const vnd = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -149,29 +151,16 @@ export function ConsultationResult({
           <Alternatives alternatives={r.alternatives} />
         </div>
 
-        {/* Actions — đơn chỉ được tạo qua giỏ hàng */}
-        <div className="mt-6 space-y-3">
-          <CustomCartActions
-            className="space-y-3"
-            size="lg"
-            disabled={blockedByMockup}
-            payload={
-              consultationId
-                ? {
-                    kind: 'custom',
-                    consultationId,
-                    productId: r.suggestedProductId ?? undefined,
-                    quantity: r.moq,
-                    hasPrinting,
-                  }
-                : null
-            }
+        {/* Form liên hệ + Mua ngay — customer tạo đơn trực tiếp từ AI recommendation */}
+        {consultationId && (
+          <ContactForm
+            consultationId={consultationId}
+            estimatedTotal={r.estimatedTotalMin ?? 0}
           />
-          {blockedByMockup && (
-            <p className="text-center text-xs text-gray-500">Tạo ảnh mockup để tiếp tục đặt hàng.</p>
-          )}
-          {consultationId && <SaveAsTemplateButton consultationId={consultationId} size="lg" className="w-full" />}
-        </div>
+        )}
+
+        {/* Lưu làm mẫu */}
+        {consultationId && <SaveAsTemplateButton consultationId={consultationId} size="lg" className="w-full mt-6" />}
 
         <p className="mt-6 text-center text-xs text-gray-500">
           Sau khi đặt hàng, nhân viên của chúng tôi sẽ xác nhận giá và thời gian sản xuất trong vòng 24h.

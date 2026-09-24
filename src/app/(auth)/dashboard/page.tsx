@@ -85,6 +85,13 @@ export default async function DashboardPage() {
               Tư vấn mới
             </Link>
             <Link
+              href="/dashboard/consultations"
+              className="inline-flex items-center gap-2 rounded-md border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+            >
+              <BookmarkSimple className="h-4 w-4" />
+              Lịch sử tư vấn
+            </Link>
+            <Link
               href="/dashboard/reorder"
               className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >

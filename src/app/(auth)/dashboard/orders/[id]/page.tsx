@@ -24,6 +24,8 @@ import {
 import { cn } from '@/lib/utils'
 import { CancelOrderButton } from '../cancel-order-button'
 import { PaymentBadge, StatusBadge } from '../order-ui'
+import { PayNowButton } from './pay-now-button'
+import { PayOSRedirectHandler } from './payos-redirect-handler'
 
 type OrderDetailPageProps = {
   params: { id: string }
@@ -47,6 +49,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
   return (
     <div className="space-y-6">
+      {/* Auto-reload when PayOS redirects back with PAID status */}
+      <PayOSRedirectHandler />
+
       <div className="space-y-5">
         <div>
           <Link href="/dashboard/orders" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -140,6 +145,10 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </Card>
 
           <div className="flex flex-wrap gap-2">
+            {/* PayOS payment button — only show for unpaid orders */}
+            {order.payment_status !== 'paid' && Number(order.total_amount ?? 0) > 0 ? (
+              <PayNowButton orderId={order.id} paymentStatus={order.payment_status} />
+            ) : null}
             {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
             {canReorder ? (
               <Link href={`/dashboard/reorder?id=${order.id}`} className={cn(buttonVariants({ size: 'lg' }))}>

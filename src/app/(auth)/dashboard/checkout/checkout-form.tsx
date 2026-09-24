@@ -27,7 +27,7 @@ import {
 // Chỉ còn paymentMethod + ghi chú. addressId là state riêng của AddressPicker
 // (một nguồn duy nhất), tên/SĐT/email/địa chỉ lấy từ DB phía server.
 const checkoutSchema = z.object({
-  paymentMethod: z.enum(['cod', 'bank_transfer']),
+  paymentMethod: z.enum(['cod', 'bank_transfer', 'payos']),
   notes: z.string().trim().max(1000).optional(),
 })
 
@@ -53,6 +53,7 @@ export function CheckoutForm({
   const [serverError, setServerError] = useState('')
   const [issues, setIssues] = useState<StockIssue[]>([])
   const [createdOrder, setCreatedOrder] = useState<CreatedCheckoutOrder | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cod')
   const [addressId, setAddressId] = useState(initialAddressId)
 
   const total = useMemo(
@@ -97,6 +98,8 @@ export function CheckoutForm({
       return
     }
     notifyCartUpdated()
+    const method = values.paymentMethod
+    setSelectedPaymentMethod(method)
     setCreatedOrder(body?.data ?? null)
   }
 
@@ -149,8 +152,9 @@ export function CheckoutForm({
                   className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                   {...register('paymentMethod')}
                 >
-                  <option value="cod">Thanh toán khi nhận hàng</option>
-                  <option value="bank_transfer">Chuyển khoản</option>
+                  <option value="cod">Thanh toán khi nhận hàng (COD)</option>
+                  <option value="bank_transfer">Chuyển khoản ngân hàng</option>
+                  <option value="payos">Thanh toán qua PayOS</option>
                 </select>
               </Field>
               <Field label="Người nhận">

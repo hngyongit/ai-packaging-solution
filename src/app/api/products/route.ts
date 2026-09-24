@@ -12,6 +12,10 @@ const productSchema = z.object({
   description: z.string().trim().max(2000).nullable().optional(),
   category: z.string(),
   boxType: z.string(),
+  minDimensions: z
+    .object({ length: z.number().positive(), width: z.number().positive(), height: z.number().positive() })
+    .nullable()
+    .optional(),
   maxDimensions: z.object({ length: z.number().positive(), width: z.number().positive(), height: z.number().positive() }),
   availableLayers: z.array(z.number().int().positive()).min(1),
   basePrice: z.number().nonnegative(),

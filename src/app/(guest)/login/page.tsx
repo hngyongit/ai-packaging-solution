@@ -42,7 +42,23 @@ export default function LoginPage() {
       setServerError('Email hoặc mật khẩu không đúng.')
       return
     }
-    router.push('/dashboard')
+
+    // Fetch profile to determine role-based redirect
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    // Redirect based on role: sales/admin → /staff, customer → /dashboard
+    const targetPath = (profile?.role === 'sales' || profile?.role === 'admin') ? '/staff' : '/dashboard'
+    router.push(targetPath)
     router.refresh()
   }
 

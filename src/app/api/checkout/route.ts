@@ -13,7 +13,7 @@ import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 const checkoutSchema = z.object({
   cartItemIds: z.array(z.string().uuid()).min(1, 'Chọn ít nhất một sản phẩm'),
-  paymentMethod: z.enum(['cod', 'bank_transfer']).default('cod'),
+  paymentMethod: z.enum(['cod', 'bank_transfer', 'payos']).default('cod'),
   addressId: z.string().uuid().optional(),
   notes: z.string().trim().max(1000).optional(),
 })
@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
 
     await clearCartItems(profile.id, body.cartItemIds)
 
-    // Trả về bản rút gọn đủ cho UI thành công.
-    const order = createdOrder as { id: string; order_code: string; total_amount: number | string | null }
+    // Trả về bản rút gọn đủ cho UI thành công + redirect PayOS.
+    const order = createdOrder as { id: string; order_code: string; total_amount: number | string | null; payment_method: string | null }
     return NextResponse.json(
-      { data: { id: order.id, order_code: order.order_code, total_amount: order.total_amount } },
+      { data: { id: order.id, order_code: order.order_code, total_amount: order.total_amount, payment_method: order.payment_method ?? 'cod' } },
       { status: 201 }
     )
   } catch (error) {

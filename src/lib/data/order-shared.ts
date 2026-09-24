@@ -24,7 +24,18 @@ const ORDER_STATUS_DISPLAY: Record<OrderStatus, string> = {
 
 export type OrderStatus = (typeof ORDER_STATUS_SEQUENCE)[number]
 export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid'
-export type PaymentMethod = 'cod' | 'bank_transfer'
+export type PaymentMethod = 'cod' | 'bank_transfer' | 'payos'
+
+/** Human-readable label for payment method */
+export function getPaymentMethodLabel(method: PaymentMethod | null | undefined): string {
+  if (!method) return 'Chưa chọn'
+  const labels: Record<string, string> = {
+    cod: 'Thanh toán khi nhận hàng (COD)',
+    bank_transfer: 'Chuyển khoản ngân hàng',
+    payos: 'Thanh toán qua PayOS',
+  }
+  return labels[method] ?? method
+}
 
 export type CustomerProfile = {
   id: string
@@ -107,10 +118,6 @@ export function getPaymentStatusLabel(status: string | null | undefined) {
     default:
       return 'Không xác định'
   }
-}
-
-export function getPaymentMethodLabel(method: string | null | undefined) {
-  return method === 'bank_transfer' ? 'Chuyển khoản' : 'Thanh toán khi nhận hàng'
 }
 
 export function toNumber(value: number | string | null | undefined) {

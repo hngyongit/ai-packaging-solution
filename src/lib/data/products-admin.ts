@@ -27,6 +27,7 @@ export type ProductInput = {
   description?: string | null
   category: string
   boxType: string
+  minDimensions: { length: number; width: number; height: number } | null
   maxDimensions: { length: number; width: number; height: number }
   availableLayers: number[]
   basePrice: number
@@ -40,7 +41,7 @@ export async function listAllProducts() {
   const admin = await createAdminClient()
   const { data, error } = await admin
     .from('products')
-    .select('id, code, name, description, category, box_type, max_dimensions, available_layers, base_price, unit, stock_quantity, is_active, image_url')
+    .select('id, code, name, description, category, box_type, min_dimensions, max_dimensions, available_layers, base_price, unit, stock_quantity, is_active, image_url')
     .order('code', { ascending: true })
   if (error) throw new ProductAdminError(error.message, 500)
   return data ?? []
@@ -75,6 +76,7 @@ function toRow(input: Partial<ProductInput>) {
     ...(input.description !== undefined ? { description: input.description } : {}),
     ...(input.category !== undefined ? { category: input.category } : {}),
     ...(input.boxType !== undefined ? { box_type: input.boxType } : {}),
+    ...(input.minDimensions !== undefined ? { min_dimensions: input.minDimensions } : {}),
     ...(input.maxDimensions !== undefined ? { max_dimensions: input.maxDimensions } : {}),
     ...(input.availableLayers !== undefined ? { available_layers: input.availableLayers } : {}),
     ...(input.basePrice !== undefined ? { base_price: input.basePrice } : {}),
