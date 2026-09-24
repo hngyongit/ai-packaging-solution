@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, Prohibit, Factory } from '@phosphor-icons/react'
+import { CheckCircle, Prohibit } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { PriceChangeModal, isSignificantPriceChange, getPriceChangePercent } from '@/components/modals/PriceChange'
@@ -11,6 +11,9 @@ import { formatCurrency, toNumber } from '@/lib/data/order-shared'
 /**
  * Hành động staff trên đơn — nút chính "Xác nhận & chốt giá" bắn PATCH status
  * confirmed (server trừ kho + chặn underflow). 409 (thiếu kho) hiện lỗi tại chỗ.
+ * 
+ * Lưu ý: Không có nút "Chuyển sang sản xuất" — sau khi staff duyệt (confirmed),
+ * customer thanh toán qua PayOS → webhook tự động chuyển sang production.
  */
 export function StaffOrderActions({
   orderId,
@@ -84,28 +87,6 @@ export function StaffOrderActions({
     }
   }
 
-  async function handleProduction() {
-    setBusy(true)
-    setError('')
-    try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'production' }),
-      })
-      const body = await response.json().catch(() => ({ error: 'Lỗi không xác định' }))
-      if (!response.ok) {
-        setError(body.error ?? 'Không thể chuyển sang sản xuất.')
-        return
-      }
-      router.refresh()
-    } catch {
-      setError('Không thể kết nối đến máy chủ.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   // Check if price change is significant before confirming
   const hasAIestimate = aiEstimatedPrice && aiEstimatedPrice > 0
   const shouldShowPriceWarning = hasAIestimate && !busy && status === 'pending' && allowedTransitions.includes('confirmed')
@@ -128,7 +109,6 @@ export function StaffOrderActions({
 
   const canConfirm = allowedTransitions.includes('confirmed')
   const canCancel = allowedTransitions.includes('cancelled')
-  const goesToProduction = status === 'confirmed'
 
   return (
     <div className="space-y-2">
@@ -163,12 +143,6 @@ export function StaffOrderActions({
       )}
       {canConfirm && stockSummary.stockCount === 0 && (
         <p className="text-center text-xs text-gray-400">Toàn bộ là hàng gia công — chốt không trừ kho.</p>
-      )}
-      {goesToProduction && (
-        <Button variant="outline" className="w-full" disabled={busy} onClick={handleProduction}>
-          <Factory className="h-4 w-4" />
-          Xác nhận & Chuyển sang sản xuất
-        </Button>
       )}
       {canCancel && (
         <Button variant="outline" className="w-full text-red-600 hover:text-red-700" disabled={busy} onClick={handleReject}>

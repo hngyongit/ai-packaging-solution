@@ -1,6 +1,6 @@
 /**
  * PayOS client — create payment link, verify webhook checksum.
- * Uses Node.js native 'crypto' module (no external dependencies).
+ * Uses @payos/node SDK for reliable API v2 integration.
  * 
  * Env vars required:
  *   PAYOS_CLIENT_ID     — from PayOS Dashboard
@@ -8,6 +8,7 @@
  *   PAYOS_CHECKSUM_KEY  — checksum key for webhook verification
  */
 
+import { PayOS } from '@payos/node'
 import { createHmac } from 'node:crypto'
 
 // ---------------------------------------------------------------------------
@@ -38,22 +39,17 @@ export interface PayOSWebhookPayload {
 // Config
 // ---------------------------------------------------------------------------
 
-function getClientId(): string {
-  const v = process.env.PAYOS_CLIENT_ID
-  if (!v) throw new Error('PAYOS_CLIENT_ID is not set')
-  return v
-}
+function getPayOS(): PayOS {
+  const clientId = process.env.PAYOS_CLIENT_ID?.trim()
+  const apiKey = process.env.PAYOS_API_KEY?.trim()
+  const checksumKey = process.env.PAYOS_CHECKSUM_KEY?.trim()
 
-function getApiKey(): string {
-  const v = process.env.PAYOS_API_KEY
-  if (!v) throw new Error('PAYOS_API_KEY is not set')
-  return v
-}
+  if (!clientId || !apiKey || !checksumKey) {
+    throw new Error('PAYOS environment variables not set')
+  }
 
-function getChecksumKey(): string {
-  const v = process.env.PAYOS_CHECKSUM_KEY
-  if (!v) throw new Error('PAYOS_CHECKSUM_KEY is not set')
-  return v
+  // SDK constructor accepts an options object (not positional args)
+  return new PayOS({ clientId, apiKey, checksumKey })
 }
 
 // ---------------------------------------------------------------------------
@@ -61,29 +57,26 @@ function getChecksumKey(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Generate HMAC-SHA256 signature for PayOS API request.
+ * Verify webhook checksum from PayOS.
  * Signature = HMAC-SHA256(sortedQueryString, checksumKey)
  */
-function signBody(body: Record<string, string | number | boolean | null>): string {
-  const sorted = Object.entries(body)
-    .filter(([, v]) => v !== null)
-    .sort(([a], [b]) => a.localeCompare(b))
-  
-  const queryString = sorted.map(([k, v]) => `${k}=${v}`).join('&')
-  return createHmac('sha256', getChecksumKey())
-    .update(queryString)
-    .digest('hex')
-}
-
-/**
- * Verify webhook checksum from PayOS.
- * Payload must contain webhookChecksum field.
- */
 export function verifyWebhookChecksum(payload: PayOSWebhookPayload): boolean {
+  const checksumKey = process.env.PAYOS_CHECKSUM_KEY?.trim()
+  if (!checksumKey) return false
+
   const provided = payload.webhookChecksum
   // Remove the checksum field before signing
   const { webhookChecksum: _, ...rest } = payload
-  const computed = signBody(rest as Record<string, string | number | boolean | null>)
+  
+  const sorted = Object.entries(rest)
+    .filter(([, v]) => v !== null && v !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b))
+
+  const queryString = sorted.map(([k, v]) => `${k}=${v}`).join('&')
+  const computed = createHmac('sha256', checksumKey)
+    .update(queryString)
+    .digest('hex')
+
   return computed === provided
 }
 
@@ -92,13 +85,11 @@ export function verifyWebhookChecksum(payload: PayOSWebhookPayload): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Create a payment link via PayOS API v2.
- *
- * PayOS expects:
- *   Headers: X-ClientId, X-API-Key, X-Paysignature (HMAC-SHA256 of request body)
- *   Body: only business fields (orderCode, amount, description, cancelUrl, returnUrl)
- *
- * Reference: https://docs.payos.vn/api-and-operation/creating-payment-request
+ * Create a payment link via PayOS API v2 using official SDK.
+ * 
+ * SDK handles all signature generation correctly.
+ * 
+ * Reference: https://docs.payos.vn/
  */
 export async function createPaymentLink(
   orderCode: number,
@@ -106,54 +97,60 @@ export async function createPaymentLink(
   description: string,
   returnUrl: string
 ): Promise<PayOSPaymentResult> {
-  const baseUrl = 'https://api-merchant.payos.vn/v2/payment-requests'
+  // Round to integer (PayOS requires integer amount)
+  const roundedAmount = Math.round(totalAmount)
 
-  // Build the exact body that PayOS expects — NO clientId, apiKey, or checksum here
-  const requestBody = JSON.stringify({
+  // Validate inputs
+  if (roundedAmount <= 0) {
+    throw new Error(`Invalid total amount: ${totalAmount}`)
+  }
+  if (!returnUrl.startsWith('http')) {
+    throw new Error(`Invalid returnUrl: ${returnUrl}. Must start with http(s)://`)
+  }
+  // PayOS requires description max 25 characters — truncate if needed
+  const maxDescLength = 25
+  const truncatedDescription = description.length > maxDescLength
+    ? description.slice(0, maxDescLength)
+    : description
+
+  console.log('[PayOS] Creating payment link via SDK:', {
     orderCode,
-    amount: Math.round(totalAmount),
+    amount: roundedAmount,
     description,
-    cancelUrl: returnUrl,
-    returnUrl,
+    returnUrl: returnUrl.slice(0, 100),
   })
 
-  // Generate HMAC-SHA256 signature of the raw request body
-  const checksum = createHmac('sha256', getChecksumKey())
-    .update(requestBody)
-    .digest('hex')
+  const payos = getPayOS()
 
-  const res = await fetch(baseUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-ClientId': getClientId(),
-      'X-API-Key': getApiKey(),
-      'X-Paysignature': checksum,
-    },
-    body: requestBody,
-  })
+  try {
+    // Use official PayOS SDK v2 method: payos.paymentRequests.create()
+    const result = await payos.paymentRequests.create({
+      orderCode,
+      amount: roundedAmount,
+      description: truncatedDescription,
+      cancelUrl: returnUrl,
+      returnUrl,
+    })
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '')
-    let err: { message?: string; code?: string } = { message: errText }
-    try {
-      err = JSON.parse(errText)
-    } catch {}
-    throw new Error(`PayOS createPaymentLink failed (${res.status}): ${err.message || err.code || res.statusText} — ${errText.slice(0, 200)}`)
-  }
+    console.log('[PayOS] Payment link created successfully:', {
+      paymentLinkId: result.paymentLinkId,
+      hasCheckoutUrl: !!result.checkoutUrl,
+    })
 
-  const result = await res.json() as {
-    success: boolean
-    data?: { transactionId: string; paymentUrl: string }
-    message?: string
-  }
-
-  if (!result.success || !result.data?.paymentUrl) {
-    throw new Error(`PayOS returned error: ${result.message || 'no paymentUrl'}`)
-  }
-
-  return {
-    paymentUrl: result.data.paymentUrl,
-    payosPaymentId: result.data.transactionId ?? String(orderCode),
+    return {
+      paymentUrl: result.checkoutUrl || '',
+      payosPaymentId: result.paymentLinkId || String(orderCode),
+    }
+  } catch (error: any) {
+    console.error('[PayOS] createPaymentLink FAILED:', {
+      message: error.message,
+      statusCode: error.statusCode,
+      response: error.response?.data,
+      orderId: orderCode,
+      amount: roundedAmount,
+    })
+    throw new Error(
+      `PayOS createPaymentLink failed: ${error.message} — ${JSON.stringify(error.response?.data || {})}`
+    )
   }
 }

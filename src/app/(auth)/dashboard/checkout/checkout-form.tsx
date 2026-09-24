@@ -103,7 +103,7 @@ export function CheckoutForm({
     setCreatedOrder(body?.data ?? null)
   }
 
-  if (createdOrder) return <CheckoutSuccess order={createdOrder} paymentMethod={selectedPaymentMethod} />
+  if (createdOrder) return <CheckoutSuccess order={createdOrder} />
   if (lines.length === 0) return <CheckoutEmpty />
 
   const chosen = addresses.find((row) => row.id === addressId) ?? null

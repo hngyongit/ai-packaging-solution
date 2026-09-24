@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
 import type { FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle } from '@phosphor-icons/react'
 
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -19,30 +17,7 @@ export type CreatedCheckoutOrder = {
 }
 
 /** Màn hình cảm ơn sau khi đặt. */
-export function CheckoutSuccess({ order, paymentMethod }: { order: CreatedCheckoutOrder; paymentMethod: string }) {
-  const router = useRouter()
-
-  // Auto-redirect to PayOS after successful order creation
-  async function payWithPayOS() {
-    try {
-      const res = await fetch(`/api/orders/${order.id}/payos/create`, { method: 'POST' })
-      const data = await res.json().catch(() => ({})) as { error?: string; paymentUrl?: string }
-      if (!res.ok || !data.paymentUrl) {
-        console.error('Failed to create PayOS link:', data.error)
-        return
-      }
-      window.location.href = data.paymentUrl
-    } catch {
-      console.error('PayOS redirect failed')
-    }
-  }
-
-  useEffect(() => {
-    if (paymentMethod === 'payos') {
-      void payWithPayOS()
-    }
-  }, [paymentMethod, order.id])
-
+export function CheckoutSuccess({ order }: { order: CreatedCheckoutOrder }) {
   return (
     <Card className="mx-auto max-w-xl">
       <CardContent className="p-8 text-center">

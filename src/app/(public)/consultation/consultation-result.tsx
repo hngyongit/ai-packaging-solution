@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, Lightbulb, Package, ShieldCheck, UserCircle } from '@phosphor-icons/react'
+import { CheckCircle, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
-import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import { buttonVariants } from '@/components/ui/button'
 import { type AIRecommendation } from '@/lib/ai/types'
 import { cn } from '@/lib/utils'
@@ -12,6 +11,7 @@ import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
 import { PrintMockupPanel, EMPTY_MOCKUP, type MockupAssets } from './print-mockup-panel'
 import { StepIndicator } from './step-indicator'
+import { ContactForm } from './contact-form'
 
 const vnd = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -29,23 +29,10 @@ export function ConsultationResult({
 }) {
   const [mockupUrl, setMockupUrl] = useState<string | null>(initialMockup.mockupUrl)
   const [mockupStatus, setMockupStatus] = useState('idle')
-  const [reviewRequested, setReviewRequested] = useState(false)
   const r = recommendation
   const stars = Math.round(r.confidence * 5)
   // Chặn đặt hàng tới khi có mockup; 503 (chưa cấu hình AI) thì không chặn.
   const blockedByMockup = hasPrinting && mockupStatus !== 'unavailable' && !mockupUrl
-
-  async function handleRequestReview() {
-    if (!consultationId) return
-    try {
-      await fetch(`/api/consultations/${consultationId}/request-review`, {
-        method: 'POST',
-      })
-      setReviewRequested(true)
-    } catch {
-      // silently fail — user can retry
-    }
-  }
 
   return (
     <section className="bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
@@ -164,52 +151,16 @@ export function ConsultationResult({
           <Alternatives alternatives={r.alternatives} />
         </div>
 
-        {/* Actions — đơn chỉ được tạo qua giỏ hàng */}
-        <div className="mt-6 space-y-3">
-          {/* Hành động 1: Gửi nhân viên xem xét */}
-          {!reviewRequested ? (
-            <button
-              type="button"
-              className={cn(
-                buttonVariants({ variant: 'outline', size: 'lg' }),
-                'w-full transition-colors'
-              )}
-              onClick={handleRequestReview}
-            >
-              <UserCircle className="mr-2 h-5 w-5" weight="duotone" />
-              Nhờ nhân viên xem giúp
-            </button>
-          ) : (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
-              <p className="text-sm font-medium text-emerald-800">✅ Đã gửi yêu cầu review</p>
-              <p className="mt-1 text-xs text-emerald-600">
-                Nhân viên sẽ phản hồi trong vòng 24h. Bạn vẫn có thể tạo đơn bất cứ lúc nào.
-              </p>
-            </div>
-          )}
-
-          {/* Hành động 2: Tạo đơn hàng (group) */}
-          <CustomCartActions
-            className="space-y-3"
-            size="lg"
-            disabled={blockedByMockup}
-            payload={
-              consultationId
-                ? {
-                    kind: 'custom',
-                    consultationId,
-                    productId: r.suggestedProductId ?? undefined,
-                    quantity: r.moq,
-                    hasPrinting,
-                  }
-                : null
-            }
+        {/* Form liên hệ + Mua ngay — customer tạo đơn trực tiếp từ AI recommendation */}
+        {consultationId && (
+          <ContactForm
+            consultationId={consultationId}
+            estimatedTotal={r.estimatedTotalMin ?? 0}
           />
-          {blockedByMockup && (
-            <p className="text-center text-xs text-gray-500">Tạo ảnh mockup để tiếp tục đặt hàng.</p>
-          )}
-          {consultationId && <SaveAsTemplateButton consultationId={consultationId} size="lg" className="w-full" />}
-        </div>
+        )}
+
+        {/* Lưu làm mẫu */}
+        {consultationId && <SaveAsTemplateButton consultationId={consultationId} size="lg" className="w-full mt-6" />}
 
         <p className="mt-6 text-center text-xs text-gray-500">
           Sau khi đặt hàng, nhân viên của chúng tôi sẽ xác nhận giá và thời gian sản xuất trong vòng 24h.

@@ -66,15 +66,6 @@ export async function POST(
     }
 
     // Validate payable status
-    console.log('[PayOS Create] Debug:', {
-      orderId: order.id,
-      orderStatus: order.status,
-      paymentStatus: order.payment_status,
-      totalAmount: order.total_amount,
-      payosPaymentId: order.payos_payment_id,
-      customerIdMatch: order.customer_id === profile.id,
-      isPayableStatus: PAYABLE_STATUSES.includes(order.status as (typeof PAYABLE_STATUSES)[number]),
-    })
     if (!PAYABLE_STATUSES.includes(order.status as (typeof PAYABLE_STATUSES)[number])) {
       return NextResponse.json(
         { error: `Cannot create payment link for order status: ${order.status}` },
@@ -85,8 +76,16 @@ export async function POST(
     // Generate unique order code for PayOS (timestamp-based, min 6 digits)
     const orderCode = Math.floor(Date.now() / 1000) % 100000 + 100000
 
-    // Create payment link
-    const returnUrl = `${req.headers.get('origin')}/dashboard/orders/${orderId}?payment=redirected`
+    // Use NEXT_PUBLIC_SITE_URL from env as base URL
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const returnUrl = `${siteUrl}/dashboard/orders/${orderId}?payment=redirected`
+
+    console.log('[PayOS Create] Creating payment link:', {
+      orderCode,
+      amount: order.total_amount,
+      returnUrl,
+    })
+
     const { paymentUrl, payosPaymentId } = await createPaymentLink(
       orderCode,
       Number(order.total_amount),

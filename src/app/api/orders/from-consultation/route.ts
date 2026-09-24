@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Consultation not found or access denied' }, { status: 404 })
     }
 
-    // Only allow creating orders from quoted/staff_reviewed consultations
-    if (!['quoted', 'staff_reviewed'].includes(consultation.status)) {
-      return NextResponse.json({ error: 'Cannot create order from this consultation status' }, { status: 400 })
+    // Chỉ cho phép tạo đơn từ ai_processed (khách tự tạo) hoặc quoted/staff_reviewed (staff tạo giúp)
+    if (!['ai_processed', 'quoted', 'staff_reviewed'].includes(consultation.status)) {
+      return NextResponse.json({ error: 'Không thể tạo đơn từ trạng thái tư vấn này' }, { status: 400 })
     }
 
     // Parse AI recommendation for dimensions

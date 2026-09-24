@@ -28,6 +28,7 @@ export function ProductField({
 const DIMENSION_LABELS = { length: 'Dài', width: 'Rộng', height: 'Cao' } as const
 type DimensionKey = keyof typeof DIMENSION_LABELS
 
+/** Kích thước tối đa cho phép của sản phẩm */
 export function ProductDimensionsFields({
   values,
   onChange,
@@ -37,7 +38,37 @@ export function ProductDimensionsFields({
 }) {
   return (
     <fieldset className="space-y-1">
-      <legend className="block text-sm font-medium text-gray-700">Kích thước mặc định (cm)</legend>
+      <legend className="block text-sm font-medium text-gray-700">Kích thước tối đa (cm)</legend>
+      <div className="grid grid-cols-3 gap-3">
+        {(Object.keys(DIMENSION_LABELS) as DimensionKey[]).map((key) => (
+          <label key={key} className="space-y-1">
+            <span className="text-xs text-gray-500">{DIMENSION_LABELS[key]}</span>
+            <Input
+              type="number"
+              min={0}
+              step={0.1}
+              value={values[key]}
+              onChange={(event) => onChange(key, event.target.value)}
+              placeholder="0"
+            />
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+/** Kích thước nhỏ nhất sản phẩm có thể đặt (bao nhiêu cũng nhận) */
+export function ProductMinDimensionsFields({
+  values,
+  onChange,
+}: {
+  values: Record<DimensionKey, string>
+  onChange: (key: DimensionKey, value: string) => void
+}) {
+  return (
+    <fieldset className="space-y-1">
+      <legend className="block text-sm font-medium text-gray-700">Kích thước tối thiểu (cm)</legend>
       <div className="grid grid-cols-3 gap-3">
         {(Object.keys(DIMENSION_LABELS) as DimensionKey[]).map((key) => (
           <label key={key} className="space-y-1">

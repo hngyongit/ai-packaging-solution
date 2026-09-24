@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, CalendarCheck, MapPin } from '@phosphor-icons/react/dist/ssr'
+import { ArrowLeft, CalendarCheck, MapPin, PencilSimpleLine } from '@phosphor-icons/react/dist/ssr'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { getStatusMetadata } from '@/lib/data/orders-status'
 import { cn } from '@/lib/utils'
 
 import { StaffOrderActions } from './staff-order-actions'
+import { PriceEditorWrapper } from './price-editor-wrapper'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,13 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
               ))}
             </CardContent>
           </Card>
+
+          {/* Price Editor — cho phép staff chỉnh giá và tính lại total */}
+          <PriceEditorWrapper
+            items={items}
+            orderId={order.id}
+            currentTotal={toNumber(order.total_amount)}
+          />
 
           <StatusTimeline order={order} />
 
