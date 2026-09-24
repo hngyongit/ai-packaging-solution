@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   MapPin,
 } from '@phosphor-icons/react/dist/ssr'
+import { headers } from 'next/headers'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,7 @@ import {
   formatDateTime,
   getCurrentProfile,
   getCustomerOrderById,
+  getOrderByIdPublic,
   getPaymentMethodLabel,
   toNumber,
 } from '@/lib/data/orders'
@@ -37,15 +39,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   if (!UUID_PATTERN.test(params.id)) notFound()
 
   const profile = await getCurrentProfile()
-  if (!profile) redirect('/login')
-
-  const order = await getCustomerOrderById(profile.id, params.id)
+  
+  // For PayOS callback redirects (no auth), fetch order directly without profile check
+  const headersList = await headers()
+  const isPayOSCallback = headersList.get('x-payos-callback') === 'true' || 
+    typeof window !== 'undefined' && new URL(window.location.href).searchParams.get('status') === 'PAID'
+  
+  let order = null
+  if (profile) {
+    order = await getCustomerOrderById(profile.id, params.id)
+  } else if (isPayOSCallback) {
+    // Fallback: try to fetch order without auth for PayOS callback
+    order = await getOrderByIdPublic(params.id)
+  }
+  
   if (!order) notFound()
 
   const fee = toNumber(order.delivery_fee)
   const itemTotal = order.order_items.reduce((sum, item) => sum + toNumber(item.subtotal), 0)
-  const canReorder = canReorderOrder(order.status)
-  const canCancel = canCustomerCancelOrder(order.status)
+  const canReorder = profile ? canReorderOrder(order.status) : false
+  const canCancel = profile ? canCustomerCancelOrder(order.status) : false
 
   return (
     <div className="space-y-6">
