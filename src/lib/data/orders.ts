@@ -189,3 +189,30 @@ export async function getCustomerOrderById(profileId: string, orderId: string) {
     order_status_history: history ?? [],
   }
 }
+
+/** Fetch order by ID without requiring customer_id match — used for PayOS callbacks when auth is missing. */
+export async function getOrderByIdPublic(orderId: string) {
+  const admin = await createAdminClient()
+  const { data: order, error } = await admin
+    .from('orders')
+    .select(ORDER_LIST_SELECT)
+    .eq('id', orderId)
+    .maybeSingle<CustomerOrder>()
+
+  if (error) throw error
+  if (!order) return null
+
+  const { data: history, error: historyError } = await admin
+    .from('order_status_history')
+    .select('id, from_status, to_status, notes, created_at')
+    .eq('order_id', order.id)
+    .order('created_at', { ascending: true })
+    .returns<OrderStatusHistory[]>()
+
+  if (historyError) throw historyError
+
+  return {
+    ...order,
+    order_status_history: history ?? [],
+  }
+}

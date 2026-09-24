@@ -6,7 +6,6 @@ import {
   CalendarCheck,
   MapPin,
 } from '@phosphor-icons/react/dist/ssr'
-import { headers } from 'next/headers'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,16 +39,11 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
   const profile = await getCurrentProfile()
   
-  // For PayOS callback redirects (no auth), fetch order directly without profile check
-  const headersList = await headers()
-  const isPayOSCallback = headersList.get('x-payos-callback') === 'true' || 
-    typeof window !== 'undefined' && new URL(window.location.href).searchParams.get('status') === 'PAID'
+  // Try to fetch order: with profile first (secure), then fallback to public lookup
+  let order = profile ? await getCustomerOrderById(profile.id, params.id) : null
   
-  let order = null
-  if (profile) {
-    order = await getCustomerOrderById(profile.id, params.id)
-  } else if (isPayOSCallback) {
-    // Fallback: try to fetch order without auth for PayOS callback
+  // If no profile or order not found by profile, try public lookup (for PayOS callbacks)
+  if (!order) {
     order = await getOrderByIdPublic(params.id)
   }
   
