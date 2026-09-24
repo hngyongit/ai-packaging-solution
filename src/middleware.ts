@@ -30,10 +30,16 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
 
   // Resolve authenticated profile (needed for role-based guards)
   const profile = await getAuthenticatedProfile(request)
+
+  // Skip auth check for PayOS callback redirects (cookies may be lost on cross-site redirect)
+  const isPayOSCallback = searchParams.get('status') === 'PAID' || searchParams.get('payment') === 'redirected'
+  if (isPayOSCallback && pathname.startsWith('/dashboard/orders')) {
+    return supabaseResponse
+  }
 
   // Staff routes — require sales/admin role
   if (pathname.startsWith('/staff')) {
