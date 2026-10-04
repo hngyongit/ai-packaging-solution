@@ -9,9 +9,9 @@ export default function StaffLayout({
   return (
     <>
       <Navbar hideAuth />
-      <div className="flex min-h-[calc(100dvh-4rem)]">
+      <div className="flex h-[calc(100dvh-4rem)]">
         <StaffSidebar />
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main className="min-w-0 flex-1 overflow-auto p-6">{children}</main>
       </div>
     </>
   )

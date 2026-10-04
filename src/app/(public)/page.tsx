@@ -45,74 +45,6 @@ export default function HomePage() {
     }, 850)
   }, [])
 
-  // Hero = h-[125dvh], sticky stage pins for 125dvh - 100dvh = 1/4 screen.
-  // The band after the pin (scroll past 1/4 but not yet out of the hero) is a no-rest zone:
-  //   entering it downward → eased scroll down to section 2
-  //   entering it upward   → eased scroll back to page top, so the dec group is back at its initial position
-  // Native `behavior:'smooth'` is not used for the handoff: this page sets
-  // `scroll-behavior:smooth` globally and the handler re-fires mid-flight, so the browser
-  // animation gets cancelled/stacked. A rAF tween owns the whole trip (see scrollTo).
-  useEffect(() => {
-    const hero = heroRef.current
-    if (!hero) return
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-
-    let lastY = window.scrollY
-    let tween: { id: number } | null = null
-
-    const scrollTo = (target: number, duration: number) => {
-      if (tween) cancelAnimationFrame(tween.id)
-      const start = window.scrollY
-      const delta = target - start
-      if (Math.abs(delta) < 2) {
-        window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior })
-        lastY = target
-        tween = null
-        return
-      }
-      const state = { id: 0 }
-      tween = state
-      const t0 = performance.now()
-      const step = (now: number) => {
-        if (tween !== state) return
-        const p = Math.min(1, (now - t0) / duration)
-        const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
-        window.scrollTo({ top: start + delta * e, behavior: 'instant' as ScrollBehavior })
-        lastY = window.scrollY
-        if (p < 1) state.id = requestAnimationFrame(step)
-        else tween = null
-      }
-      state.id = requestAnimationFrame(step)
-    }
-
-    const onScroll = () => {
-      const y = window.scrollY
-      const goingUp = y < lastY
-      lastY = y
-
-      if (tween) return // a handoff is in flight
-
-      const top = hero.getBoundingClientRect().top
-      const pinReleased = -top >= hero.offsetHeight - window.innerHeight
-      const heroLeftView = top + hero.offsetHeight <= 0
-
-      if (!pinReleased || heroLeftView) return // parked on hero or on a later section
-
-      const next = hero.nextElementSibling
-      // 120ms even for prefers-reduced-motion: the point is a non-rest band, and
-      // a 0-duration tween is exactly the instant snap we are trying to kill.
-      const duration = reducedMotion.matches ? 120 : 4400
-      if (goingUp) {
-        scrollTo(0, duration)
-      } else if (next) {
-        scrollTo(next.getBoundingClientRect().top + y, duration)
-      }
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   // Reveal-on-scroll for every `[data-reveal]` block (sections below the hero).
   // Plain IntersectionObserver + CSS (.reveal / .reveal.is-visible in globals.css) —
   // motion's whileInView was unreliable on this page.
@@ -146,9 +78,7 @@ export default function HomePage() {
     // overflow-x-clip (not -hidden): -hidden creates a scroll container and kills position:sticky
     <div className="overflow-x-clip reveal-init">
       <>
-        {/* Hero: dec group scrolls up (normal flow at top), content pinned on top (sticky z-10)
-            for 1/4 viewport. The 1/4 hand-off is two-way — see the scroll effect above — so on
-            scroll-back it eases to the hero head where the decs sit at their initial position. */}
+        {/* Hero: dec group scrolls up in normal flow while the content stays pinned briefly. */}
         <section ref={heroRef} className="relative h-[125dvh]">
           {/* Decorative images — one group, positions unchanged */}
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[100dvh]">

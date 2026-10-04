@@ -142,7 +142,13 @@ export default function RegisterPage() {
 
   if (pending) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+      <div className="relative min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+        <Link
+          href="/"
+          className="absolute left-6 top-6 text-xl font-bold tracking-tight text-gray-900 transition-colors hover:text-primary"
+        >
+          AI Carton
+        </Link>
         <Card className="w-full max-w-md">
           <CardContent className="space-y-4 pt-6 text-center">
             <Envelope className="mx-auto h-10 w-10 text-primary" />
@@ -191,13 +197,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+    <div className="relative min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+      <Link
+        href="/"
+        className="absolute left-6 top-6 text-xl font-bold tracking-tight text-gray-900 transition-colors hover:text-primary"
+      >
+        AI Carton
+      </Link>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Link href="/" className="text-xl font-bold tracking-tight text-gray-900">
-            AI Carton
-          </Link>
-          <CardTitle className="mt-4 text-xl">Đăng ký tài khoản</CardTitle>
+          <CardTitle className="text-xl">Đăng ký tài khoản</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

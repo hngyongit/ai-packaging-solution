@@ -63,13 +63,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+    <div className="relative min-h-dvh flex items-center justify-center bg-gray-50 px-4">
+      <Link
+        href="/"
+        className="absolute left-6 top-6 text-xl font-bold tracking-tight text-gray-900 transition-colors hover:text-primary"
+      >
+        AI Carton
+      </Link>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Link href="/" className="text-xl font-bold tracking-tight text-gray-900">
-            AI Carton
-          </Link>
-          <CardTitle className="mt-4 text-xl">Đăng nhập</CardTitle>
+          <CardTitle className="text-xl">Đăng nhập</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

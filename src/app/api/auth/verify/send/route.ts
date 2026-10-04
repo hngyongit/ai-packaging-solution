@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+import { isEmailVerifiedByOAuth } from '@/lib/auth/email-verification'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { hashOtp, newOtpCode, otpPolicy, sendOtpEmail } from '@/lib/mail/otp'
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
   if (!user || user.email?.toLowerCase() !== parsed.data.email.toLowerCase()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (isEmailVerifiedByOAuth(user)) return NextResponse.json({ ok: true, skipped: true })
 
   const admin = await createAdminClient()
 

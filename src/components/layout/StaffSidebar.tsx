@@ -35,7 +35,7 @@ export function StaffSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex w-64 flex-col border-r border-gray-200 bg-white">
+    <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-64 shrink-0 flex-col border-r border-gray-200 bg-white md:flex">
       {/* Logo header */}
       <div className="p-4 border-b border-gray-200">
         <Link href="/staff" className="text-lg font-bold tracking-tight text-gray-900">

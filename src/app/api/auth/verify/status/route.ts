@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { isEmailVerifiedByOAuth } from '@/lib/auth/email-verification'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 // Trạng thái xác minh email của chính user đang đăng nhập (client dùng để
@@ -10,6 +11,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (isEmailVerifiedByOAuth(user)) return NextResponse.json({ verified: true })
 
   const admin = await createAdminClient()
   const { data } = await admin
