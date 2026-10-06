@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { PrintPreviewStrip } from "@/components/order/print-preview-strip"
+import { PayNowButton } from "@/components/checkout/pay-now-button"
 import { buttonVariants } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -16,6 +17,7 @@ import {
   getPaymentStatusLabel,
   type CustomerOrder,
 } from "@/lib/data/order-shared"
+import { canPayViaPayOS, getOutstandingAmount } from "@/lib/data/order-payment"
 import { cn } from "@/lib/utils"
 import { CancelOrderButton } from "./cancel-order-button"
 
@@ -58,6 +60,8 @@ function OrderQuickViewModal({
 }) {
   const canReorder = canReorderOrder(order.status)
   const canCancel = canCustomerCancelOrder(order.status)
+  const canPayNow = canPayViaPayOS(order)
+  const outstanding = getOutstandingAmount(order)
 
   return (
     <Modal
@@ -68,6 +72,7 @@ function OrderQuickViewModal({
       onOpenChange={onOpenChange}
       footer={
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          {canPayNow ? <PayNowButton orderId={order.id} /> : null}
           {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
           {canReorder ? (
             <Link href={`/dashboard/reorder?id=${order.id}`} className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
@@ -91,6 +96,13 @@ function OrderQuickViewModal({
           <Metric label="Tiền cọc" value={formatCurrency(order.deposit_amount)} />
           <Metric label="Thanh toán" value={getPaymentMethodLabel(order.payment_method)} />
         </div>
+
+        {outstanding > 0 ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Cần thanh toán <strong>{formatCurrency(outstanding)}</strong>
+            {order.payment_status === 'deposit_paid' ? ' (phần còn lại)' : ' (tiền cọc)'}.
+          </p>
+        ) : null}
 
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-gray-950">Sản phẩm</h3>

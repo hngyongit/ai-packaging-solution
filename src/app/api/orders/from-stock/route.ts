@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/data/orders'
+import { DEPOSIT_PERCENTAGE, DEPOSIT_THRESHOLD } from '@/lib/config/pricing'
 
 const schema = z.object({
   productId: z.string().uuid(),
@@ -17,6 +18,7 @@ const schema = z.object({
   contactEmail: z.string().trim().email().optional().or(z.literal('')),
   deliveryAddress: z.string().trim().min(1).max(500).optional().or(z.literal('')),
   notes: z.string().trim().max(1000).optional().or(z.literal('')),
+  paymentMethod: z.enum(['cod', 'bank_transfer']).default('cod'),
 })
 
 export async function POST(req: NextRequest) {
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
   }
 
-  const { productId, quantity, contactName, contactPhone, contactEmail, deliveryAddress, notes } = parsed.data
+  const { productId, quantity, contactName, contactPhone, contactEmail, deliveryAddress, notes, paymentMethod } = parsed.data
 
   try {
     const admin = await createAdminClient()
@@ -55,6 +57,10 @@ export async function POST(req: NextRequest) {
     // Use product's unit_price as estimated total
     const unitPrice = (product as any).unit_price ?? 0
     const estimatedTotal = unitPrice * quantity
+    const depositAmount =
+      estimatedTotal >= DEPOSIT_THRESHOLD
+        ? Math.round((estimatedTotal * DEPOSIT_PERCENTAGE) / 100)
+        : 0
 
     // Create order with pending status
     const { data: order, error: orderError } = await admin
@@ -68,6 +74,9 @@ export async function POST(req: NextRequest) {
         delivery_address: deliveryAddress || null,
         notes: notes || null,
         total_amount: estimatedTotal,
+        deposit_amount: depositAmount,
+        deposit_threshold: DEPOSIT_THRESHOLD,
+        payment_method: paymentMethod,
         payment_status: 'unpaid',
         status: 'pending',
       })

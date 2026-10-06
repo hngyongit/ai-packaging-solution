@@ -9,7 +9,7 @@ import { Sparkle, WarningCircle } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { printPositionsForBoxStyle } from '@/lib/config/print-positions'
-import { LogoPicker, MockupPreview, PrintPositionField } from './print-mockup-controls'
+import { LogoPicker, MockupPreview, PrintPositionField } from '@/components/consultation/print-mockup-controls'
 
 export type MockupAssets = {
   logoUrl: string | null

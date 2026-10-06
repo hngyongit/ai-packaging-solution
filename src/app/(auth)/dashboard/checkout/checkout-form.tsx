@@ -27,7 +27,7 @@ import {
 // Chỉ còn paymentMethod + ghi chú. addressId là state riêng của AddressPicker
 // (một nguồn duy nhất), tên/SĐT/email/địa chỉ lấy từ DB phía server.
 const checkoutSchema = z.object({
-  paymentMethod: z.enum(['cod', 'bank_transfer', 'payos']),
+  paymentMethod: z.enum(['cod', 'bank_transfer']),
   notes: z.string().trim().max(1000).optional(),
 })
 
@@ -153,8 +153,7 @@ export function CheckoutForm({
                   {...register('paymentMethod')}
                 >
                   <option value="cod">Thanh toán khi nhận hàng (COD)</option>
-                  <option value="bank_transfer">Chuyển khoản ngân hàng</option>
-                  <option value="payos">Thanh toán qua PayOS</option>
+                  <option value="bank_transfer">Chuyển khoản ngân hàng (PayOS)</option>
                 </select>
               </Field>
               <Field label="Người nhận">

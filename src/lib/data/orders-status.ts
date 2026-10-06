@@ -1,6 +1,8 @@
 import { ORDER_STATUS_LABELS } from '@/lib/config/constants'
 
 import { createAdminClient } from '@/lib/supabase/server'
+import { sendOrderEmail, type OrderMailData } from '@/lib/mail/order-mail'
+import { canEnterProduction, DEPOSIT_REQUIRED_MESSAGE } from './order-payment'
 import { deductStockOnConfirm, restockOnCancel } from './orders-stock'
 
 // Máy trạng thái đơn hàng — tách khỏi route handler để handler giữ <80 dòng.
@@ -13,6 +15,37 @@ export type OrderStatusRow = {
   customer_id: string
   status: OrderStatus
   updated_at: string
+  total_amount?: number | string | null
+  deposit_amount?: number | string | null
+  payment_status?: string | null
+}
+
+/** Tiêu đề + lời dẫn mail theo trạng thái mới. Chỉ gửi ở các mốc khách cần biết. */
+const ORDER_MAIL_COPY: Partial<Record<OrderStatus, { heading: string; intro: string }>> = {
+  confirmed: {
+    heading: 'Đơn hàng đã được xác nhận',
+    intro: 'Nhân viên đã kiểm tra và chốt giá cho đơn của bạn. Bước tiếp theo nằm dưới đây.',
+  },
+  deposit_paid: {
+    heading: 'Đã nhận tiền cọc',
+    intro: 'Chúng tôi đã nhận được tiền cọc và sẽ bắt đầu chuẩn bị sản xuất.',
+  },
+  production: {
+    heading: 'Đơn hàng đang được sản xuất',
+    intro: 'Xưởng đã bắt đầu sản xuất đơn của bạn.',
+  },
+  completed: {
+    heading: 'Đơn hàng đã hoàn thành',
+    intro: 'Đơn của bạn đã sản xuất xong và chuẩn bị được giao.',
+  },
+  delivered: {
+    heading: 'Đơn hàng đã được giao',
+    intro: 'Đơn của bạn đã được giao. Cảm ơn bạn đã tin dùng AI Carton.',
+  },
+  cancelled: {
+    heading: 'Đơn hàng đã được hủy',
+    intro: 'Đơn của bạn đã được hủy. Nếu đây là nhầm lẫn, hãy liên hệ lại với chúng tôi.',
+  },
 }
 
 export class StatusError extends Error {
@@ -68,7 +101,7 @@ export async function getOrderStatusRow(id: string): Promise<OrderStatusRow> {
   const admin = await createAdminClient()
   const { data, error } = await admin
     .from('orders')
-    .select('id, customer_id, status, updated_at')
+    .select('id, customer_id, status, updated_at, total_amount, deposit_amount, payment_status')
     .eq('id', id)
     .maybeSingle<OrderStatusRow>()
   if (error) throw error
@@ -100,6 +133,11 @@ export async function transitionOrderStatus(input: {
 }): Promise<OrderStatusRow> {
   const { order, nextStatus } = input
   const admin = await createAdminClient()
+
+  // Phòng thủ nhiều lớp: route gọi thẳng hàm này cũng không nhảy được qua cọc.
+  if (nextStatus === 'production' && !canEnterProduction(order)) {
+    throw new StatusError(DEPOSIT_REQUIRED_MESSAGE, 409)
+  }
 
   const { data: updated, error: updateError } = await admin
     .from('orders')
@@ -147,14 +185,57 @@ export async function transitionOrderStatus(input: {
     await restockOnCancel(order.id)
   }
 
+  await notifyCustomer(admin, order.id, nextStatus)
+
   return updated
+}
+
+/**
+ * Mail cho khách ở mốc đổi trạng thái. Chạy SAU khi giao dịch đã commit và
+ * không bao giờ throw — SMTP chết không được biến một lần xác nhận thành lỗi 500.
+ * Lỗi gửi ghi vào order_status_history để staff còn biết mà gọi lại khách.
+ */
+async function notifyCustomer(
+  admin: Awaited<ReturnType<typeof createAdminClient>>,
+  orderId: string,
+  nextStatus: OrderStatus
+) {
+  const copy = ORDER_MAIL_COPY[nextStatus]
+  if (!copy) return
+
+  const { data: order } = await admin
+    .from('orders')
+    .select(
+      'id, order_code, status, total_amount, deposit_amount, payment_method, payment_status, contact_email, contact_name'
+    )
+    .eq('id', orderId)
+    .maybeSingle<OrderMailData>()
+
+  if (!order) return
+
+  const sent = await sendOrderEmail(order, copy.heading, copy.intro)
+  if (!sent && order.contact_email) {
+    await admin.from('order_status_history').insert({
+      order_id: orderId,
+      from_status: nextStatus,
+      to_status: nextStatus,
+      changed_by: null,
+      notes: `Không gửi được mail thông báo tới ${order.contact_email}`,
+    })
+  }
 }
 
 export function validateTransition(role: UserRole, order: OrderStatusRow, nextStatus: OrderStatus): void {
   const allowed = getAllowedTransitions(role, order.status)
-  if (allowed.includes(nextStatus)) return
-  if (!isStaffRole(role) && STAFF_TRANSITIONS[order.status].includes(nextStatus)) {
-    throw new StatusError('Forbidden', 403)
+  if (!allowed.includes(nextStatus)) {
+    if (!isStaffRole(role) && STAFF_TRANSITIONS[order.status].includes(nextStatus)) {
+      throw new StatusError('Forbidden', 403)
+    }
+    throw new StatusError('Invalid status transition', allowed.length === 0 ? 409 : 400)
   }
-  throw new StatusError('Invalid status transition', allowed.length === 0 ? 409 : 400)
+
+  // Đơn lớn phải cọc trước khi vào sản xuất — bất kể phương thức thanh toán.
+  if (nextStatus === 'production' && !canEnterProduction(order)) {
+    throw new StatusError(DEPOSIT_REQUIRED_MESSAGE, 409)
+  }
 }

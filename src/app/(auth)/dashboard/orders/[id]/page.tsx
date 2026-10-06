@@ -23,9 +23,10 @@ import {
   toNumber,
 } from '@/lib/data/orders'
 import { cn } from '@/lib/utils'
+import { canPayViaPayOS, getOutstandingAmount, orderRequiresDeposit } from '@/lib/data/order-payment'
+import { PayNowButton } from '@/components/checkout/pay-now-button'
 import { CancelOrderButton } from '../cancel-order-button'
 import { PaymentBadge, StatusBadge } from '../order-ui'
-import { PayNowButton } from './pay-now-button'
 import { PayOSRedirectHandler } from './payos-redirect-handler'
 
 type OrderDetailPageProps = {
@@ -53,6 +54,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const itemTotal = order.order_items.reduce((sum, item) => sum + toNumber(item.subtotal), 0)
   const canReorder = profile ? canReorderOrder(order.status) : false
   const canCancel = profile ? canCustomerCancelOrder(order.status) : false
+  const outstanding = getOutstandingAmount(order)
+  const canPayNow = Boolean(profile) && canPayViaPayOS(order)
+  // Link PayOS còn mở → mời khách trả tiếp bằng chính link đó, khỏi tạo link mới.
+  const resumePaymentUrl = canPayNow ? order.payos_checkout_url : null
+  const needsDeposit = orderRequiresDeposit(order) && order.payment_status === 'unpaid'
+  const payLabel = order.payment_status === 'deposit_paid' ? 'Thanh toán phần còn lại' : 'Thanh toán ngay'
 
   return (
     <div className="space-y-6">
@@ -124,8 +131,22 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <div className="h-px bg-border" />
               <SummaryRow label="Tổng cộng" value={formatCurrency(order.total_amount)} strong />
               <SummaryRow label="Thanh toán" value={getPaymentMethodLabel(order.payment_method)} />
+              {outstanding > 0 ? (
+                <SummaryRow
+                  label={order.payment_status === 'deposit_paid' ? 'Còn lại phải trả' : 'Cần thanh toán'}
+                  value={formatCurrency(outstanding)}
+                  strong
+                />
+              ) : null}
             </CardContent>
           </Card>
+
+          {needsDeposit ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              Đơn từ mức quy định phải đặt cọc <strong>{formatCurrency(order.deposit_amount)}</strong>{' '}
+              trước khi sản xuất, kể cả khi chọn COD. Phần còn lại thu khi giao hàng.
+            </div>
+          ) : null}
 
           <Card className="rounded-lg">
             <CardHeader>
@@ -152,9 +173,10 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </Card>
 
           <div className="flex flex-wrap gap-2">
-            {/* PayOS payment button — only show for unpaid orders */}
-            {order.payment_status !== 'paid' && Number(order.total_amount ?? 0) > 0 ? (
-              <PayNowButton orderId={order.id} paymentStatus={order.payment_status} />
+            {/* Chỉ đơn chuyển khoản, đã chốt giá, còn nợ tiền mới trả online được.
+                Đơn COD không cọc thì không thu trước; đơn COD phải cọc thì trả cọc ở đây. */}
+            {canPayNow ? (
+              <PayNowButton orderId={order.id} resumeUrl={resumePaymentUrl} label={payLabel} />
             ) : null}
             {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
             {canReorder ? (

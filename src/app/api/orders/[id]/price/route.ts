@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getAuthenticatedProfile } from '@/lib/data/profile'
+import { DEPOSIT_PERCENTAGE, DEPOSIT_THRESHOLD } from '@/lib/config/pricing'
 
 const priceAdjustmentSchema = z.object({
   items: z.array(
@@ -91,11 +92,16 @@ export async function PATCH(
       updates.push({ itemId: adjustment.itemId, unitPrice: adjustment.unitPrice })
     }
 
-    // Recalculate order total_amount
+    // Tổng đổi thì cọc đổi theo — nếu không, đơn vượt ngưỡng sau khi sửa giá
+    // sẽ lọt qua cổng cọc với deposit_amount = 0.
+    const depositAmount =
+      newTotal >= DEPOSIT_THRESHOLD ? Math.round((newTotal * DEPOSIT_PERCENTAGE) / 100) : 0
+
     const { error: updateOrderError } = await admin
       .from('orders')
       .update({
         total_amount: newTotal,
+        deposit_amount: depositAmount,
         updated_at: new Date().toISOString(),
       })
       .eq('id', order.id)

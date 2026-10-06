@@ -1,10 +1,16 @@
-import { getDielineUrl, getMockupUrl, getPrintPositionLabel, type OrderItem } from '@/lib/data/order-shared'
+import { getDielineUrl, getMockupUrl, getPrintPositionLabel } from '@/lib/data/order-shared'
+
+// Chỉ cần printing_specs (không phải cả OrderItem) để màn staff — nơi có kiểu dòng
+// riêng — cũng dùng lại được mà không phải dựng thêm type.
+type PrintSpecs = { printing_specs: Record<string, unknown> | null }
 
 /**
  * Thumbnail ảnh mockup AI + khuôn bế có hình in của một dòng đơn hàng.
  * next/image không dùng được (next.config.mjs chỉ whitelist picsum) → <img> raw.
+ * File SVG khách tải lên cũng render qua <img> — script trong SVG không chạy ở
+ * ngữ cảnh này, nên TUYỆT ĐỐI không chuyển sang dangerouslySetInnerHTML.
  */
-export function PrintPreviewStrip({ item, size = 'sm' }: { item: OrderItem; size?: 'sm' | 'md' }) {
+export function PrintPreviewStrip({ item, size = 'sm' }: { item: PrintSpecs; size?: 'sm' | 'md' }) {
   const mockupUrl = getMockupUrl(item)
   const dielineUrl = getDielineUrl(item)
   if (!mockupUrl && !dielineUrl) return null

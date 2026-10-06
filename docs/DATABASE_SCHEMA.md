@@ -233,10 +233,10 @@ CREATE TABLE orders (
   deposit_amount DECIMAL(14,2),
   deposit_threshold DECIMAL(14,2) DEFAULT 5000000,  -- Orders above this require deposit
   payment_method TEXT DEFAULT 'cod'
-    CHECK (payment_method IN ('cod', 'bank_transfer')),
+    CHECK (payment_method IN ('cod', 'bank_transfer')),  -- bank_transfer thi hành qua PayOS
   payment_status TEXT DEFAULT 'unpaid'
     CHECK (payment_status IN ('unpaid', 'deposit_paid', 'paid')),
-  payment_proof_url TEXT,                            -- Uploaded bank transfer screenshot
+  payos_amount DECIMAL(14,2),                        -- Số tiền của link PayOS đang mở (cọc hoặc toàn bộ)
   contact_name TEXT,                                 -- Customer contact info
   contact_phone TEXT,
   contact_email TEXT,
@@ -288,7 +288,7 @@ CREATE TABLE order_items (
   product_name TEXT NOT NULL,
   product_code TEXT NOT NULL,
   dimensions JSONB NOT NULL,                     -- { length, width, height, layers }
-  printing_specs JSONB,                          -- { colors, positions, file_url }
+  printing_specs JSONB,                          -- { hasPrinting, printPosition, printPositionLabel, logoUrl/fileUrl, dielineUrl, dielineName, mockupUrl }
   quantity INT NOT NULL,
   unit_price DECIMAL(12,2) NOT NULL,
   subtotal DECIMAL(14,2) NOT NULL,
@@ -451,7 +451,7 @@ CREATE TABLE public.cart_items (
   saved_product_id UUID REFERENCES saved_products(id) ON DELETE SET NULL,
   quantity INT NOT NULL CHECK (quantity > 0),
   has_printing BOOLEAN NOT NULL DEFAULT FALSE,
-  printing_specs JSONB,                 -- { logoUrl/fileUrl, printPositionLabel, mockupUrl, dielineUrl }
+  printing_specs JSONB,                 -- { hasPrinting, printPosition, printPositionLabel, logoUrl/fileUrl, dielineUrl, dielineName, mockupUrl }
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT cart_items_custom_needs_specs CHECK (kind <> 'custom' OR custom IS NOT NULL)
@@ -526,10 +526,20 @@ Qua `POST /api/upload` (`src/app/api/upload/route.ts`), route này **yêu cầu 
 
 | Bucket | Visibility | Purpose (upload purpose) |
 |---|---|---|
-| `logos` | Public (read) | `logo`, `reference` — logo/app thiết kế khách tải lên |
+| `logos` | Public (read) | `logo`, `reference`, `dieline` — logo/app thiết kế khách tải lên, và file khuôn bế SVG khách tự dựng |
 | `order-files` | Signed URL, hết hạn 1h | `payment-proof`, `order-file` — cần `orderId` |
 
-Giới hạn: 5–10MB tùy purpose, whitelist MIME + phần mở rộng.
+Giới hạn: 5–10MB tùy purpose, whitelist MIME + phần mở rộng. `logos` cho phép cả `image/svg+xml`.
+
+> ⚠️ Hai bucket này **không** được tạo tay — migration `20261006010000_create_storage_buckets`
+> tạo chúng bằng `INSERT ... ON CONFLICT DO NOTHING` (trước đó `storage.buckets` rỗng nên
+> **mọi** lần upload đều 500 `Bucket not found`, không riêng gì SVG). Không cấp policy nào cho
+> `storage.objects`: ghi qua `service_role` (bỏ qua RLS), đọc công khai qua endpoint
+> `/object/public/`, `order-files` đọc bằng signed URL — cả ba đường đều không đi qua RLS.
+
+> ⚠️ SVG trong bucket public là vector stored-XSS **khi mở URL trực tiếp**. Mọi chỗ trong app
+> render nó qua `<img>` (script không chạy ở ngữ cảnh đó) — không bao giờ đưa file khách tải lên
+> vào `dangerouslySetInnerHTML`.
 
 ### 3.2 Cloudinary — ảnh do SERVER sinh ra
 

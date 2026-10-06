@@ -1,74 +1,42 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { ORDER_STATUS_LABELS } from '@/lib/config/constants'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { getOutstandingAmount, orderRequiresDeposit } from '@/lib/data/order-payment'
+
+// Xem / đổi phương thức thanh toán của đơn.
+// bank_transfer KHÔNG dùng minh chứng tải lên — khách trả qua PayOS
+// (/api/orders/[id]/payos/create), webhook xác nhận.
 
 type UserRole = 'customer' | 'sales' | 'admin'
 type PaymentMethod = 'cod' | 'bank_transfer'
-type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid'
-type OrderStatus = keyof typeof ORDER_STATUS_LABELS
 
-type Profile = {
-  id: string
-  role: UserRole
-}
+type Profile = { id: string; role: UserRole }
 
 type PaymentOrder = {
   id: string
   order_code: string
   customer_id: string
-  status: OrderStatus
+  status: string
   total_amount: number | string | null
   deposit_amount: number | string | null
-  deposit_threshold: number | string | null
   payment_method: PaymentMethod | null
-  payment_status: PaymentStatus | null
-  payment_proof_url: string | null
+  payment_status: string | null
   contact_phone: string | null
   updated_at: string
 }
 
-type SupabaseMaybeError = {
-  code?: string
-} | null
-
-const PAYABLE_ORDER_STATUSES: OrderStatus[] = ['pending', 'staff_review', 'confirmed']
 const PAYMENT_SELECT = `
-  id,
-  order_code,
-  customer_id,
-  status,
-  total_amount,
-  deposit_amount,
-  deposit_threshold,
-  payment_method,
-  payment_status,
-  payment_proof_url,
-  contact_phone,
-  updated_at
+  id, order_code, customer_id, status, total_amount, deposit_amount,
+  payment_method, payment_status, contact_phone, updated_at
 `
 
-const BANK_TRANSFER_DETAILS = {
-  bankName: 'Vietcombank',
-  accountNumber: '0123 456 789',
-  accountName: 'CONG TY TNHH BAO BI ABC',
-}
+// Đổi phương thức chỉ khi đơn chưa thu đồng nào và chưa vào sản xuất.
+const EDITABLE_STATUSES = ['pending', 'staff_review', 'confirmed', 'deposit_paid']
 
-const paymentSchema = z
-  .object({
-    paymentMethod: z.enum(['cod', 'bank_transfer']),
-    paymentProofUrl: z.string().trim().url().optional(),
-  })
-  .superRefine((value, context) => {
-    if (value.paymentMethod === 'bank_transfer' && !value.paymentProofUrl) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['paymentProofUrl'],
-        message: 'Payment proof URL is required for bank transfer',
-      })
-    }
-  })
+const paymentSchema = z.object({
+  paymentMethod: z.enum(['cod', 'bank_transfer']),
+})
 
 function errorResponse(error: string, status: number) {
   return NextResponse.json({ error }, { status })
@@ -78,54 +46,17 @@ function isStaff(profile: Profile) {
   return profile.role === 'sales' || profile.role === 'admin'
 }
 
-function isNotFoundError(error: SupabaseMaybeError) {
-  return error?.code === 'PGRST116'
-}
-
-function toMoney(value: number | string | null) {
-  const amount = Number(value ?? 0)
-  return Number.isFinite(amount) ? amount : 0
-}
-
-function getPayableAmount(order: PaymentOrder) {
-  const totalAmount = toMoney(order.total_amount)
-  const depositAmount = toMoney(order.deposit_amount)
-  const depositThreshold = toMoney(order.deposit_threshold)
-
-  if (depositAmount > 0 && totalAmount >= depositThreshold) return depositAmount
-  return totalAmount
-}
-
-function getTransferReference(order: PaymentOrder) {
-  return `${order.order_code}${order.contact_phone ? ` - ${order.contact_phone}` : ''}`
-}
-
 function getPaymentDetails(order: PaymentOrder) {
-  const payableAmount = getPayableAmount(order)
-  const paymentMethod = order.payment_method ?? 'cod'
-  const paymentStatus = order.payment_status ?? 'unpaid'
-  const isBankTransfer = paymentMethod === 'bank_transfer'
-
   return {
     orderId: order.id,
     orderCode: order.order_code,
     orderStatus: order.status,
-    paymentMethod,
-    paymentStatus,
-    totalAmount: toMoney(order.total_amount),
-    depositAmount: toMoney(order.deposit_amount),
-    payableAmount,
-    paymentProofUrl: order.payment_proof_url,
-    requiresStaffVerification: isBankTransfer && Boolean(order.payment_proof_url),
-    isPayable: paymentStatus === 'unpaid' && PAYABLE_ORDER_STATUSES.includes(order.status),
-    bankTransfer:
-      isBankTransfer || paymentStatus === 'unpaid'
-        ? {
-            ...BANK_TRANSFER_DETAILS,
-            amount: payableAmount,
-            transferReference: getTransferReference(order),
-          }
-        : null,
+    paymentMethod: order.payment_method ?? 'cod',
+    paymentStatus: order.payment_status ?? 'unpaid',
+    totalAmount: Number(order.total_amount ?? 0),
+    depositAmount: Number(order.deposit_amount ?? 0),
+    requiresDeposit: orderRequiresDeposit(order),
+    outstandingAmount: getOutstandingAmount(order),
     updatedAt: order.updated_at,
   }
 }
@@ -136,17 +67,15 @@ async function getAuthenticatedProfile() {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser()
-
   if (authError || !user) return null
 
   const admin = await createAdminClient()
-  const { data: profile, error: profileError } = await admin
+  const { data: profile, error } = await admin
     .from('profiles')
     .select('id, role')
     .eq('id', user.id)
     .single<Profile>()
-
-  if (profileError || !profile) return null
+  if (error || !profile) return null
   return profile
 }
 
@@ -155,34 +84,7 @@ async function getOrder(id: string) {
   return admin.from('orders').select(PAYMENT_SELECT).eq('id', id).single<PaymentOrder>()
 }
 
-function canViewPayment(profile: Profile, order: PaymentOrder) {
-  return isStaff(profile) || order.customer_id === profile.id
-}
-
-function canSubmitPayment(profile: Profile, order: PaymentOrder) {
-  return order.customer_id === profile.id
-}
-
-function getNonPayableReason(order: PaymentOrder) {
-  if (order.payment_status === 'paid' || order.payment_status === 'deposit_paid') {
-    return 'Order already has a recorded payment'
-  }
-
-  if (!PAYABLE_ORDER_STATUSES.includes(order.status)) {
-    return 'Order is not payable in its current status'
-  }
-
-  if (order.payment_method === 'bank_transfer' && order.payment_proof_url) {
-    return 'Payment proof already submitted'
-  }
-
-  return null
-}
-
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = z.string().uuid().safeParse(params.id)
     if (!id.success) return errorResponse('Invalid order id', 400)
@@ -190,10 +92,9 @@ export async function GET(
     const profile = await getAuthenticatedProfile()
     if (!profile) return errorResponse('Unauthorized', 401)
 
-    const { data: order, error: orderError } = await getOrder(id.data)
-    if (orderError && !isNotFoundError(orderError)) throw orderError
-    if (!order) return errorResponse('Order not found', 404)
-    if (!canViewPayment(profile, order)) return errorResponse('Forbidden', 403)
+    const { data: order, error } = await getOrder(id.data)
+    if (error?.code === 'PGRST116' || !order) return errorResponse('Order not found', 404)
+    if (!isStaff(profile) && order.customer_id !== profile.id) return errorResponse('Forbidden', 403)
 
     return NextResponse.json({ data: getPaymentDetails(order) })
   } catch (error) {
@@ -202,10 +103,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = z.string().uuid().safeParse(params.id)
     if (!id.success) return errorResponse('Invalid order id', 400)
@@ -213,8 +111,7 @@ export async function POST(
     const profile = await getAuthenticatedProfile()
     if (!profile) return errorResponse('Unauthorized', 401)
 
-    const json = await request.json().catch(() => null)
-    const parsed = paymentSchema.safeParse(json)
+    const parsed = paymentSchema.safeParse(await request.json().catch(() => null))
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Missing or invalid payment details', details: parsed.error.flatten() },
@@ -222,42 +119,31 @@ export async function POST(
       )
     }
 
-    const { data: order, error: orderError } = await getOrder(id.data)
-    if (orderError && !isNotFoundError(orderError)) throw orderError
-    if (!order) return errorResponse('Order not found', 404)
-    if (!canSubmitPayment(profile, order)) return errorResponse('Forbidden', 403)
+    const { data: order, error } = await getOrder(id.data)
+    if (error?.code === 'PGRST116' || !order) return errorResponse('Order not found', 404)
+    if (order.customer_id !== profile.id) return errorResponse('Forbidden', 403)
 
-    const nonPayableReason = getNonPayableReason(order)
-    if (nonPayableReason) return errorResponse(nonPayableReason, 409)
+    if (order.payment_status === 'paid' || order.payment_status === 'deposit_paid') {
+      return errorResponse('Đơn đã ghi nhận thanh toán, không đổi được phương thức', 409)
+    }
+    if (!EDITABLE_STATUSES.includes(order.status)) {
+      return errorResponse('Order is not editable in its current status', 409)
+    }
 
     const admin = await createAdminClient()
-    const paymentMethod = parsed.data.paymentMethod
-    const paymentProofUrl =
-      paymentMethod === 'bank_transfer' ? parsed.data.paymentProofUrl ?? null : null
-
-    let updateQuery = admin
+    const { data: updatedOrder, error: updateError } = await admin
       .from('orders')
       .update({
-        payment_method: paymentMethod,
-        payment_proof_url: paymentProofUrl,
+        payment_method: parsed.data.paymentMethod,
         updated_at: new Date().toISOString(),
       })
       .eq('id', order.id)
       .eq('status', order.status)
       .select(PAYMENT_SELECT)
-
-    updateQuery = order.payment_status
-      ? updateQuery.eq('payment_status', order.payment_status)
-      : updateQuery.is('payment_status', null)
-
-    updateQuery = order.payment_proof_url
-      ? updateQuery.eq('payment_proof_url', order.payment_proof_url)
-      : updateQuery.is('payment_proof_url', null)
-
-    const { data: updatedOrder, error: updateError } = await updateQuery.single<PaymentOrder>()
+      .single<PaymentOrder>()
 
     if (updateError) {
-      if (isNotFoundError(updateError)) return errorResponse('Payment state changed; retry request', 409)
+      if (updateError.code === 'PGRST116') return errorResponse('Payment state changed; retry request', 409)
       throw updateError
     }
 
@@ -265,9 +151,9 @@ export async function POST(
       data: {
         ...getPaymentDetails(updatedOrder),
         message:
-          paymentMethod === 'cod'
-            ? 'COD selected. Payment will be collected on delivery.'
-            : 'Payment proof submitted. Staff verification is required before payment is marked paid.',
+          parsed.data.paymentMethod === 'cod'
+            ? 'Đã chọn COD. Đơn vị vận chuyển thu hộ khi giao hàng.'
+            : 'Đã chọn chuyển khoản. Thanh toán qua PayOS ở trang đơn hàng.',
       },
     })
   } catch (error) {

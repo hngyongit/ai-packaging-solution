@@ -2,14 +2,16 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { removeCartItem, setCartCustomSpec, setCartQuantity } from '@/lib/data/cart'
+import { printingSpecSchema, setCartPrinting } from '@/lib/data/cart-printing'
 import { customSpecSchema } from '@/lib/data/custom-spec'
 import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 // quantity cho mọi loại dòng; custom chỉ dùng cho dòng 'custom' (chỉnh quy cách
-// ngay trong giỏ).
+// ngay trong giỏ); printing cho MỌI dòng (hàng kho cũng in được logo).
 const patchSchema = z.object({
   quantity: z.coerce.number().int().positive().max(1_000_000).optional(),
   custom: customSpecSchema.optional(),
+  printing: printingSpecSchema.optional(),
 })
 
 export async function PATCH(
@@ -27,9 +29,13 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: 'Dữ liệu không hợp lệ', details: parsed.error.flatten() }, { status: 400 })
     }
-    const { quantity, custom } = parsed.data
-    if (!custom && !quantity) return NextResponse.json({ error: 'Không có thay đổi nào' }, { status: 400 })
+    const { quantity, custom, printing } = parsed.data
+    // printing phải so === undefined: { hasPrinting: false } là payload "tắt in" hợp lệ.
+    if (!custom && !quantity && printing === undefined) {
+      return NextResponse.json({ error: 'Không có thay đổi nào' }, { status: 400 })
+    }
     if (custom) await setCartCustomSpec({ customerId: profile.id, cartItemId: id.data, custom })
+    if (printing) await setCartPrinting({ customerId: profile.id, cartItemId: id.data, printing })
     if (quantity) await setCartQuantity({ customerId: profile.id, cartItemId: id.data, quantity })
     return NextResponse.json({ ok: true })
   } catch (error) {

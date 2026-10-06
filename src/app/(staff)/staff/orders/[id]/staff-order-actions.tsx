@@ -2,18 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, Prohibit } from '@phosphor-icons/react'
+import { CheckCircle, Factory, Prohibit } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { PriceChangeModal, isSignificantPriceChange, getPriceChangePercent } from '@/components/modals/PriceChange'
 import { formatCurrency, toNumber } from '@/lib/data/order-shared'
 
 /**
- * Hành động staff trên đơn — nút chính "Xác nhận & chốt giá" bắn PATCH status
- * confirmed (server trừ kho + chặn underflow). 409 (thiếu kho) hiện lỗi tại chỗ.
- * 
- * Lưu ý: Không có nút "Chuyển sang sản xuất" — sau khi staff duyệt (confirmed),
- * customer thanh toán qua PayOS → webhook tự động chuyển sang production.
+ * Hành động staff trên đơn — nút chính "Xác nhận & chốt giá" bắn POST /confirm
+ * (server trừ kho + chặn underflow + chặn vào sản xuất khi chưa cọc). 409 hiện tại chỗ.
+ *
+ * Đơn COD đã cọc: không có webhook nào tự đẩy sang sản xuất, nên staff có nút riêng.
  */
 export function StaffOrderActions({
   orderId,
@@ -21,12 +20,14 @@ export function StaffOrderActions({
   allowedTransitions,
   stockSummary,
   aiEstimatedPrice,
+  canProduce,
 }: {
   orderId: string
   status: string
   allowedTransitions: string[]
   stockSummary: { stockCount: number; stockQty: number }
   aiEstimatedPrice?: number | null
+  canProduce?: boolean
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
@@ -109,13 +110,14 @@ export function StaffOrderActions({
 
   const canConfirm = allowedTransitions.includes('confirmed')
   const canCancel = allowedTransitions.includes('cancelled')
+  const canStartProduction = Boolean(canProduce) && allowedTransitions.includes('production')
 
   return (
     <div className="space-y-2">
       {canConfirm && (
-        <Button 
-          className="w-full" 
-          disabled={busy} 
+        <Button
+          className="w-full"
+          disabled={busy}
           onClick={() => {
             if (shouldShowPriceWarning) {
               setShowPriceModal(true)
@@ -128,7 +130,19 @@ export function StaffOrderActions({
           {busy ? 'Đang xử lý...' : 'Xác nhận & chốt giá'}
         </Button>
       )}
-      
+
+      {canStartProduction && (
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          onClick={() => patchStatus('production')}
+        >
+          <Factory className="h-4 w-4" />
+          {busy ? 'Đang xử lý...' : 'Chuyển sang sản xuất'}
+        </Button>
+      )}
+
       {/* Price warning indicator */}
       {shouldShowPriceWarning && (
         <p className="text-center text-xs text-amber-600">
@@ -136,6 +150,11 @@ export function StaffOrderActions({
         </p>
       )}
 
+      {canStartProduction && (
+        <p className="text-center text-xs text-gray-500">
+          Đã thu đủ cọc — chuyển đơn sang sản xuất.
+        </p>
+      )}
       {canConfirm && stockSummary.stockCount > 0 && (
         <p className="text-center text-xs text-gray-500">
           Chốt đơn sẽ trừ {stockSummary.stockQty.toLocaleString('vi-VN')} thùng có sẵn ({stockSummary.stockCount} dòng).

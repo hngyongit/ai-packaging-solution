@@ -45,7 +45,7 @@ export type StockIssue = {
   available: number
 }
 
-async function admin() {
+export async function admin() {
   const supabase = await createClient()
   const {
     data: { user },

@@ -7,6 +7,7 @@ import { CheckCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DEPOSIT_PERCENTAGE, DEPOSIT_THRESHOLD } from '@/lib/config/pricing'
 import { formatCurrency } from '@/lib/utils'
 import { type StockMatch } from '@/lib/ai/types'
 
@@ -138,6 +139,15 @@ export function StockContactForm({ match }: { match: StockMatch }) {
           </span>{' '}
           <span className="text-gray-500">(Staff sẽ xác nhận giá cuối)</span>
         </div>
+
+        {match.unitPrice * match.suggestedQuantity >= DEPOSIT_THRESHOLD ? (
+          <p className="rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-900">
+            Đơn từ {formatCurrency(DEPOSIT_THRESHOLD)} phải đặt cọc{' '}
+            <strong>{DEPOSIT_PERCENTAGE}%</strong> (
+            {formatCurrency(match.unitPrice * match.suggestedQuantity * (DEPOSIT_PERCENTAGE / 100))})
+            trước khi sản xuất, kể cả khi chọn COD.
+          </p>
+        ) : null}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

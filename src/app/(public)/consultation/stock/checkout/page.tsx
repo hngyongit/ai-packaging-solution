@@ -98,12 +98,12 @@ function StockCheckoutContent() {
         throw new Error(data?.error ?? 'Không thể tạo đơn hàng')
       }
 
-      setOrderId(data.id)
+      setOrderId(data.orderId)
       setSuccess(true)
-      
+
       // Redirect to order detail after 2 seconds
       setTimeout(() => {
-        router.push(`/dashboard/orders/${data.id}`)
+        router.push(`/dashboard/orders/${data.orderId}`)
       }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi không xác định')

@@ -8,7 +8,7 @@ type Profile = {
   role: 'customer' | 'sales' | 'admin'
 }
 
-type UploadPurpose = 'logo' | 'reference' | 'payment-proof' | 'order-file'
+type UploadPurpose = 'logo' | 'reference' | 'payment-proof' | 'order-file' | 'dieline'
 
 type UploadConfig = {
   bucket: 'logos' | 'order-files'
@@ -31,9 +31,12 @@ const DESIGN_MIME_TYPE_VALUES = [
   'application/postscript',
   'application/illustrator',
   'application/vnd.adobe.illustrator',
+  // SVG là file in hợp lệ (logo vector / khuôn bế khách tự dựng).
+  'image/svg+xml',
 ]
 const IMAGE_MIME_TYPES = new Set(IMAGE_MIME_TYPE_VALUES)
 const DESIGN_MIME_TYPES = new Set(DESIGN_MIME_TYPE_VALUES)
+const DESIGN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'ai', 'eps', 'svg'])
 
 const UPLOAD_CONFIG: Record<UploadPurpose, UploadConfig> = {
   logo: {
@@ -42,7 +45,7 @@ const UPLOAD_CONFIG: Record<UploadPurpose, UploadConfig> = {
     maxSize: 10 * MB,
     public: true,
     mimeTypes: DESIGN_MIME_TYPES,
-    extensions: new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'ai', 'eps']),
+    extensions: DESIGN_EXTENSIONS,
   },
   reference: {
     bucket: 'logos',
@@ -50,7 +53,16 @@ const UPLOAD_CONFIG: Record<UploadPurpose, UploadConfig> = {
     maxSize: 10 * MB,
     public: true,
     mimeTypes: DESIGN_MIME_TYPES,
-    extensions: new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'ai', 'eps']),
+    extensions: DESIGN_EXTENSIONS,
+  },
+  // Khuôn bế khách tự dựng (SVG) — xưởng bế/in thẳng, không phải ảnh minh hoạ.
+  dieline: {
+    bucket: 'logos',
+    folder: 'dielines',
+    maxSize: 10 * MB,
+    public: true,
+    mimeTypes: DESIGN_MIME_TYPES,
+    extensions: DESIGN_EXTENSIONS,
   },
   'payment-proof': {
     bucket: 'order-files',
@@ -66,11 +78,11 @@ const UPLOAD_CONFIG: Record<UploadPurpose, UploadConfig> = {
     maxSize: 10 * MB,
     public: false,
     mimeTypes: DESIGN_MIME_TYPES,
-    extensions: new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'ai', 'eps']),
+    extensions: DESIGN_EXTENSIONS,
   },
 }
 
-const purposeSchema = z.enum(['logo', 'reference', 'payment-proof', 'order-file'])
+const purposeSchema = z.enum(['logo', 'reference', 'payment-proof', 'order-file', 'dieline'])
 const orderScopedPurposes = new Set<UploadPurpose>(['payment-proof', 'order-file'])
 
 function errorResponse(error: string, status: number) {
@@ -151,11 +163,16 @@ async function canUploadForOrder(profile: Profile, orderId: string) {
 function validateFile(file: File, config: UploadConfig) {
   if (file.size <= 0) return { error: 'File is empty', status: 400 }
   if (file.size > config.maxSize) return { error: 'File is too large', status: 413 }
-  if (!config.mimeTypes.has(file.type)) return { error: 'Unsupported file type', status: 415 }
 
   const extension = getExtension(file.name)
   if (!extension || !config.extensions.has(extension)) {
     return { error: 'Unsupported file extension', status: 415 }
+  }
+
+  // Nhiều trình duyệt gửi SVG là text/xml hoặc để trống file.type → chỉ nới cho .svg.
+  const svgWithBlankType = extension === 'svg' && file.type === ''
+  if (!config.mimeTypes.has(file.type) && !svgWithBlankType) {
+    return { error: 'Unsupported file type', status: 415 }
   }
 
   return null

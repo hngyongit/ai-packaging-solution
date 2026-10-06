@@ -322,7 +322,6 @@ export async function POST(request: NextRequest) {
         deposit_threshold: DEPOSIT_THRESHOLD,
         payment_method: parsed.data.paymentMethod ?? sourceOrder.payment_method ?? 'cod',
         payment_status: 'unpaid',
-        payment_proof_url: null,
         contact_name: sourceOrder.contact_name ?? profile.full_name,
         contact_phone: sourceOrder.contact_phone ?? profile.phone,
         contact_email: sourceOrder.contact_email,

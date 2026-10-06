@@ -60,7 +60,7 @@ src/
 │   └── config/                    # features · pricing · constants · print-positions
 └── types/database.ts
 
-scripts/                           # seed.mjs · dieline-selfcheck.mts · mockup-selfcheck.mts
+scripts/                           # seed.mjs · dieline-selfcheck.mts · mockup-selfcheck.mts · cart-printing-selfcheck.mts
 supabase/                          # config.toml · migrations/ (KHÔNG có seed.sql)
 components.json                    # shadcn CLI (style base-nova, iconLibrary phosphor)
 ```
@@ -421,9 +421,10 @@ npm run db:seed             # 3 tài khoản test + 1 consultation + 1 order
 # 4. Run
 npm run dev                 # next dev --turbo
 
-# 5. (tuỳ chọn) Self-check gate cho luồng dieline/mockup
+# 5. (tuỳ chọn) Self-check gate cho luồng dieline/mockup/in ấn trong giỏ
 npx tsx scripts/dieline-selfcheck.mts
 npx tsx scripts/mockup-selfcheck.mts
+npx tsx scripts/cart-printing-selfcheck.mts
 ```
 
 Không cần `npx shadcn add` cho setup ban đầu — primitive đã commit trong `src/components/ui/`.
@@ -458,4 +459,5 @@ Không cần `npx shadcn add` cho setup ban đầu — primitive đã commit tro
 - [ ] Error boundaries for user-facing components
 - [ ] `npx tsx scripts/dieline-selfcheck.mts` xanh — nếu sửa `src/lib/dieline/`
 - [ ] `npx tsx scripts/mockup-selfcheck.mts` xanh — nếu sửa `src/lib/mockup/`, `src/lib/ai/mockup.ts`, `src/lib/config/print-positions.ts`
+- [ ] `npx tsx scripts/cart-printing-selfcheck.mts` xanh — nếu sửa `src/lib/data/cart-printing.ts`, `src/lib/data/cart.ts`, `src/lib/config/print-positions.ts`
 - [ ] Schema đổi → có file trong `supabase/migrations/` + cập nhật `docs/DATABASE_SCHEMA.md` + `src/types/database.ts`

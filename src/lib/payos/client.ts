@@ -85,6 +85,28 @@ export function verifyWebhookChecksum(payload: PayOSWebhookPayload): boolean {
 // ---------------------------------------------------------------------------
 
 /**
+ * Tra cứu link thanh toán theo paymentLinkId — biết link cũ còn dùng được hay đã
+ * hết hạn/bị huỷ trước khi tạo link mới.
+ *
+ * Lưu ý: PayOS không trả checkoutUrl ở đây (chỉ trả lúc create), nên URL phải
+ * lấy từ cột orders.payos_checkout_url đã lưu.
+ * Trả null khi không tìm thấy hoặc lỗi mạng — coi như link chết.
+ */
+export async function getPaymentLink(paymentLinkId: string): Promise<{
+  status: string
+  amount: number
+} | null> {
+  try {
+    const payos = getPayOS()
+    const link = await payos.paymentRequests.get(paymentLinkId)
+    return { status: link.status, amount: link.amount }
+  } catch (error: any) {
+    console.warn('[PayOS] getPaymentLink failed:', { paymentLinkId, message: error?.message })
+    return null
+  }
+}
+
+/**
  * Create a payment link via PayOS API v2 using official SDK.
  * 
  * SDK handles all signature generation correctly.

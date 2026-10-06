@@ -86,6 +86,11 @@ export function CartView({ initialLines, fullName }: { initialLines: CartLine[];
     router.push(`/dashboard/checkout?items=${selected.join(',')}`)
   }
 
+  /** CartPrintEditor tự gọi API; đây chỉ đồng bộ badge "Có in ấn" + tóm tắt. */
+  function applyPrinting(line: CartLine, hasPrinting: boolean, printingSpecs: Record<string, unknown> | null) {
+    setLines((prev) => prev.map((x) => (x.id === line.id ? { ...x, has_printing: hasPrinting, printing_specs: printingSpecs } : x)))
+  }
+
   if (lines.length === 0) {
     return (
       <div className="space-y-6">
@@ -131,6 +136,7 @@ export function CartView({ initialLines, fullName }: { initialLines: CartLine[];
                 onQuantity={(quantity) => void patchQuantity(line, quantity)}
                 onRemove={() => void remove(line)}
                 onEditCustom={line.custom ? () => setEditing(line) : undefined}
+                onPrintingSaved={(hasPrinting, printingSpecs) => applyPrinting(line, hasPrinting, printingSpecs)}
               />
             ))}
           </CardContent>

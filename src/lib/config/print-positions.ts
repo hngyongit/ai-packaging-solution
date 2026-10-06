@@ -28,6 +28,19 @@ export function isPrintPositionForBoxStyle(boxStyleId: string, position: string)
   return (PRINT_POSITIONS_BY_BOX_STYLE[boxStyleId] ?? []).includes(position as PrintPosition)
 }
 
+/**
+ * Kiểu thùng của một dòng giỏ: dòng custom mang boxStyleId riêng, hàng kho thì không
+ * — products.box_type là trục KHÁC (regular-slotted/half-slotted/full-overlap…),
+ * không map được sang rsc_a1/am_duong/mailer. Trả undefined → printPositionsForBoxStyle
+ * rơi về mặc định RSC, đúng cho toàn bộ SKU kho hiện tại.
+ */
+export function boxStyleIdForCartLine(line: {
+  kind: string
+  custom: { boxStyleId?: string } | null
+}): string | undefined {
+  return line.kind === 'custom' ? line.custom?.boxStyleId ?? undefined : undefined
+}
+
 export function printPositionLabel(position: string): string {
   return PRINT_POSITION_LABELS[position as PrintPosition] ?? position
 }

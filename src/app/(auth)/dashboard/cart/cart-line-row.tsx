@@ -2,6 +2,7 @@
 
 import { Trash } from '@phosphor-icons/react'
 
+import { CartPrintEditor } from '@/components/cart/cart-print-editor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type CartLine } from '@/lib/data/cart'
@@ -18,6 +19,7 @@ type CartLineRowProps = {
   onQuantity: (quantity: number) => void
   onRemove: () => void
   onEditCustom?: () => void
+  onPrintingSaved: (hasPrinting: boolean, printingSpecs: Record<string, unknown> | null) => void
 }
 
 /** Tên hiển thị của dòng: custom dùng spec, hàng kho dùng tên sản phẩm. */
@@ -32,7 +34,16 @@ export function lineOverStock(line: CartLine) {
   return line.product?.stockQuantity != null && line.quantity > line.product.stockQuantity
 }
 
-export function CartLineRow({ line, checked, busy, onToggle, onQuantity, onRemove, onEditCustom }: CartLineRowProps) {
+export function CartLineRow({
+  line,
+  checked,
+  busy,
+  onToggle,
+  onQuantity,
+  onRemove,
+  onEditCustom,
+  onPrintingSaved,
+}: CartLineRowProps) {
   const isCustom = line.kind === 'custom'
   const stock = line.product?.stockQuantity ?? null
   const over = lineOverStock(line)
@@ -121,6 +132,12 @@ export function CartLineRow({ line, checked, busy, onToggle, onQuantity, onRemov
             Xoá
           </Button>
         </div>
+
+        <CartPrintEditor
+          key={line.printing_specs ? JSON.stringify(line.printing_specs) : 'none'}
+          line={line}
+          onSaved={onPrintingSaved}
+        />
       </div>
     </div>
   )

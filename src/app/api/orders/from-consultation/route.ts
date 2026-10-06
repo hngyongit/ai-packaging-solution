@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/data/orders'
+import { DEPOSIT_PERCENTAGE, DEPOSIT_THRESHOLD } from '@/lib/config/pricing'
 
 const schema = z.object({
   consultationId: z.string().uuid(),
@@ -66,6 +67,10 @@ export async function POST(req: NextRequest) {
     const unitPriceMin = r?.estimatedUnitPriceMin ?? 0
     const unitPriceMax = r?.estimatedUnitPriceMax ?? 0
     const estimatedTotal = (unitPriceMin + unitPriceMax) / 2 * quantity
+    const depositAmount =
+      estimatedTotal >= DEPOSIT_THRESHOLD
+        ? Math.round((estimatedTotal * DEPOSIT_PERCENTAGE) / 100)
+        : 0
 
     // Create order with pending status
     const { data: order, error: orderError } = await admin
@@ -83,7 +88,9 @@ export async function POST(req: NextRequest) {
         total_amount: estimatedTotal,
         status: 'pending',
         delivery_fee: 0, // Will be calculated later
-        deposit_amount: 0,
+        deposit_amount: depositAmount,
+        deposit_threshold: DEPOSIT_THRESHOLD,
+        payment_status: 'unpaid',
       })
       .select()
       .single()

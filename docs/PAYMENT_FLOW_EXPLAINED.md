@@ -2,360 +2,194 @@
 
 ## Tổng Quan
 
-Hệ thống hỗ trợ 3 phương thức thanh toán:
-- **COD** (Cash on Delivery) — Thanh toán khi nhận hàng
-- **Bank Transfer** — Chuyển khoản ngân hàng  
-- **PayOS** — Thanh toán qua cổng PayOS
+Hai phương thức thanh toán:
+
+| Phương thức | Thu tiền thế nào |
+|---|---|
+| **COD** | Không thu trước. Đơn vị vận chuyển thu hộ toàn bộ khi giao. |
+| **bank_transfer** | Khách chuyển khoản qua **PayOS**. PayOS là *cơ chế thi hành* của chuyển khoản, **không phải** một phương thức riêng. |
+
+**Cọc (deposit)** — lớp chống rủi ro cho đơn lớn, độc lập với phương thức:
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Customer   │────▶│ Checkout API │────▶│  Create Order │───▶│  Staff Review│
-│   (Cart)     │     │ /api/checkout │     │ /api/orders   │    │ (pending)   │
-└─────────────┘     └──────────────┘     └─────────────┘     └──────┬──────┘
-                                                                      │
-                                                       ┌──────────────▼──────────────┐
-                                                       │   Paid?                     │
-                                                       ├───────────┬─────────────────┤
-                                                        No         Yes                │
-                                                        │            │                │
-                                                    ┌─────▼─────┐ ┌─▼──────────────┐    │
-                                                    │ Staff    │ │ payos/create │    │
-                                                    │ Confirms │ │ (PayOS link) │    │
-                                                    └─────┬─────┘ └─┬──────────────┘    │
-                                                          │                 │        │
-                                                      ┌───▼──────┐   ┌───▼──────┐      │
-                                                      │ Deposit  │   │ PayOS    │      │
-                                                      │ paid?    │   │ webhook  │      │
-                                                      └────┬─────┘   └───▲──────┘      │
-                                                           │          │              │
-                                                           │     ┌────┴────┐         │
-                                                          No      │ Paid    │Yes       │
-                                                               └────┬────┘         │
-                                                                    │               │
-                                                              ┌─────▼──────┐    │
-                                                              │ Staff      │◄───┘
-                                                              │ moves to   │
-                                                              │ production │
-                                                              └────────────┘
+total_amount ≥ 5.000.000đ  →  deposit_amount = total × 50%
+```
+
+Đơn đạt ngưỡng **phải cọc trước khi sản xuất, kể cả đơn COD**. Phần còn lại thu khi giao (COD) hoặc qua PayOS (bank_transfer).
+
+`payment_status`: `unpaid` → `deposit_paid` → `paid`
+
+Nguồn sự thật duy nhất cho các luật này: [`src/lib/data/order-payment.ts`](../src/lib/data/order-payment.ts) — server và UI dùng chung, không chép lại luật ở hai chỗ.
+
+```
+┌─────────────┐   ┌───────────────┐   ┌──────────────┐   ┌──────────────┐
+│  Customer    │──▶│ POST          │──▶│ orders       │──▶│ Staff review │
+│  (cart)      │   │ /api/checkout │   │ status=      │   │ /confirm     │
+└─────────────┘   └───────────────┘   │ pending      │   │ → confirmed  │
+                                       │ payment_     │   │ (trừ kho)    │
+                                       │ status=unpaid│   └──────┬───────┘
+                                       └──────────────┘          │
+                                                                 ▼
+                                        ┌────────────────────────────────────┐
+                                        │ Đơn có cọc?                        │
+                                        ├──────────────┬─────────────────────┤
+                                        │  Có          │  Không              │
+                                        ▼              ▼                     │
+                              ┌─────────────────┐  ┌──────────────────────┐  │
+                              │ Khách trả cọc   │  │ COD: không thu trước │  │
+                              │ qua PayOS       │  │ bank_transfer: trả   │  │
+                              │ → deposit_paid  │  │ toàn bộ qua PayOS    │  │
+                              └────────┬────────┘  └──────────┬───────────┘  │
+                                       │                      │              │
+                                       └──────────┬───────────┘              │
+                                                  ▼                          │
+                                    ┌───────────────────────────┐            │
+                                    │ canEnterProduction()?     │            │
+                                    │ đủ cọc / không cần cọc    │            │
+                                    └─────────────┬─────────────┘            │
+                                                  ▼                          │
+                                          ┌──────────────┐                   │
+                                          │ production   │◀──────────────────┘
+                                          └──────────────┘
 ```
 
 ---
 
-## Chi Tiết Từng Endpoint
+## Luật thanh toán — `src/lib/data/order-payment.ts`
+
+| Hàm | Ý nghĩa |
+|---|---|
+| `orderRequiresDeposit(order)` | `deposit_amount > 0` **và** `total ≥ DEPOSIT_THRESHOLD` |
+| `getOutstandingAmount(order)` | Số tiền phải trả lần kế tiếp. Chưa cọc → cọc (nếu có); đã cọc → phần còn lại; COD không cọc → **0** |
+| `canPayViaPayOS(order)` | Còn nợ tiền **và** status ∈ `confirmed`/`deposit_paid`/`production`. Staff phải xác nhận và **chốt giá trước**, rồi khách mới nhận mail mời thanh toán — thu tiền trên giá tạm tính là thu sai số, kể cả tiền cọc (cọc tính theo % giá cuối). |
+| `canEnterProduction(order)` | Đơn phải cọc → chỉ khi `payment_status === 'deposit_paid'` hoặc `'paid'` |
+
+`canEnterProduction()` được enforce ở **hai lớp**:
+1. `validateTransition()` — chặn PATCH status khi role staff
+2. `transitionOrderStatus()` — phòng thủ, chặn cả đường gọi thẳng hàm
+
+---
+
+## Các Endpoint
 
 ### 1. POST `/api/checkout` — Tạo đơn từ giỏ hàng
 
-**Mục đích:** Validate tồn kho → tạo order → xóa cart items.
+`cartItemIds[]`, `paymentMethod` (`cod` | `bank_transfer`), `addressId`, `notes`.
 
-**Luồng:**
 ```
-Client sends { cartItemIds, paymentMethod, addressId }
-    │
-    ▼
-① Validate auth (getAuthenticatedProfile)
-    │
-    ▼
-② Validate zod schema (cartItemIds min 1, paymentMethod enum)
-    │
-    ▼
-③ assertStockAvailable(profile.id, cartItemIds)
-   → Kiểm tra từng dòng trong cart:
-     - Nếu kind === 'custom': bỏ qua stock check
-     - Nếu kind === 'stock': kiểm tra line.quantity > product.stockQuantity
-     → Trả về { lines: CartLine[], issues: StockIssue[] }
-    │
-    ▼
-④ getAddressForCheckout(profile.id, addressId)
-   → Lấy địa chỉ thực tế từ customer_addresses DB (không tin dữ liệu client gửi lên)
-    │
-    ▼
-⑤ createOrderWithItems(...input, profile)
-   → Insert vào `orders` với status = 'pending', payment_status = 'unpaid'
-   → Insert các `order_items` tương ứng
-   → Insert `order_status_history` (from_status=null → to_status='pending')
-   → Trả về created order
-    │
-    ▼
-⑥ clearCartItems(profile.id, cartItemIds)
-    │
-    ▼
-⑦ Return { data: { id, order_code, total_amount, payment_method } }
+① Auth → ② zod → ③ assertStockAvailable (hard block, 409 + issues)
+→ ④ getAddressForCheckout (đọc DB, không tin text client)
+→ ⑤ createOrderWithItems: status=pending, payment_status=unpaid,
+     deposit_amount = total ≥ 5tr ? total×50% : 0
+→ ⑥ clearCartItems → 201
 ```
 
-**File:** [`src/app/api/checkout/route.ts`](../src/app/api/checkout/route.ts), [`src/lib/data/orders-create.ts`](../src/lib/data/orders-create.ts)
+File: [`src/app/api/checkout/route.ts`](../src/app/api/checkout/route.ts), [`src/lib/data/orders-create.ts`](../src/lib/data/orders-create.ts)
 
-**关键点:**
-- Tồn kho được check SERVER-SIDE (hard block nếu vượt quá)
-- Địa chỉ lấy từ DB, không phải từ input client
-- Order luôn bắt đầu ở status `'pending'` (chờ staff duyệt)
-- Sau khi tạo thành công → xóa cart items → refresh cart badge
+### 2. POST `/api/orders/[id]/payos/create` — Tạo link PayOS
+
+Auth: customer sở hữu đơn. Tạo link cho **đúng số tiền còn nợ** (`getOutstandingAmount`), không phải luôn `total_amount`.
+
+```
+① owner check → ② đã có payos_payment_id? → 409 (trả link cũ)
+→ ③ canPayViaPayOS? → 400 kèm lý do (chưa chốt giá / không còn nợ)
+→ ④ link cũ còn mở (PayOS báo PENDING/PROCESSING)? → trả lại chính link đó (`reused: true`)
+→ ⑤ amount = getOutstandingAmount(order); isDeposit = đơn phải cọc && chưa cọc
+→ ⑤ createPaymentLink(orderCode, amount, ...)
+→ ⑥ lưu payos_payment_id, payos_order_code, payos_amount
+```
+
+`payos_amount` là mốc để webhook đối chiếu — chống ghi nhận thiếu tiền.
+`payos_checkout_url` lưu URL của link đang mở: khách rời đi rồi quay lại đơn vẫn bấm trả tiếp được, không phải tạo link mới.
+
+File: [`src/app/api/orders/[id]/payos/create/route.ts`](../src/app/api/orders/%5Bid%5D/payos/create/route.ts)
+
+### 3. POST `/api/payos/webhook` — Callback từ PayOS
+
+Public endpoint. Chữ ký HMAC-SHA256 trên các field **đã sắp xếp** của `body.data`.
+
+```
+① Verify checksum → sai: 400
+② status cancelled/failed → xoá payos_payment_id/payos_amount, mở lại đường tạo link. 200
+③ Tìm đơn: payos_payment_id → payos_order_code → transactionId
+④ Idempotency: payment_status === 'paid' → bỏ qua
+⑤ Đối chiếu amount < payos_amount → 400, KHÔNG ghi nhận
+⑥ Chưa cọc mà đơn phải cọc → lần này là CỌC (deposit_paid)
+   Đã cọc → TẤT TOÁN (paid)
+⑦ Ghi order_status_history
+⑧ canEnterProduction() && status ∈ [confirmed, deposit_paid]
+   → production (CAS theo status cũ, + history)
+```
+
+File: [`src/lib/payos/webhook.ts`](../src/lib/payos/webhook.ts)
+
+> Webhook **không** tự đẩy đơn COD sang production — đơn COD không cọc không có callback nào. Staff dùng nút "Chuyển sang sản xuất" ở `/staff/orders/[id]`, và nút đó cũng bị chặn nếu chưa cọc.
+
+### 4. GET/POST `/api/orders/[id]/payment` — Xem / đổi phương thức
+
+Không còn upload minh chứng chuyển khoản. Đổi phương thức chỉ khi `payment_status === 'unpaid'` và status chưa qua sản xuất.
+
+### 5. Nút "Thanh toán ngay" hiện ở đâu
+
+Cùng một luật `canPayViaPayOS()` cho cả hai chỗ, không chép điều kiện:
+
+| Màn hình | Nút hiện khi |
+|---|---|
+| `/dashboard/checkout` (ngay sau khi đặt) | **không bao giờ** — chỉ báo "chờ nhân viên xác nhận" |
+| `/dashboard/orders/[id]` (quay lại sau) | đơn đã chốt giá, còn nợ tiền |
+
+Sau khi đặt, đơn luôn ở `pending` và giá còn tạm tính → chưa mời trả. Staff xác nhận xong (`confirmed`) thì hệ thống gửi mail hướng dẫn; lúc đó khách vào đơn mới thấy nút.
+
+Trang chi tiết đọc `orders.payos_checkout_url`: còn link thì bấm là đi thẳng sang PayOS, không có thì gọi API tạo link. Nhãn đổi theo bước thu — "Đặt cọc ngay" / "Thanh toán phần còn lại" / "Thanh toán ngay".
+
+> Đơn COD không cọc không bao giờ có nút: không thu trước, đơn vị vận chuyển thu hộ khi giao.
+> Đơn COD **có** cọc vẫn có nút — cọc áp dụng bất kể phương thức.
+
+### 6. Mail thông báo cho khách
+
+Gửi tự động trong `transitionOrderStatus()` — một chỗ, phủ mọi đường đổi trạng thái (staff UI, `/confirm`, `/approve`, PATCH status, webhook).
+
+| Mốc | Nội dung |
+|---|---|
+| `confirmed` | Đã chốt giá + **bước tiếp theo** (đặt cọc / thanh toán / chờ giao) |
+| `deposit_paid` | Đã nhận cọc |
+| `production` / `completed` / `delivered` | Tiến độ |
+| `cancelled` | Đã hủy |
+
+Nút trong mail bám theo `getOrderNextStep()` — cùng luật thanh toán, không hardcode. Đơn COD không cọc nhận mail nói rõ "không cần trả trước, thu hộ khi giao".
+
+**Mail không bao giờ làm hỏng giao dịch**: `sendOrderEmail()` bắt mọi lỗi và trả `false`; thất bại được ghi vào `order_status_history` để staff biết mà gọi lại khách. Thiếu `contact_email` thì bỏ qua, chỉ log.
+
+File: [`src/lib/mail/order-mail.ts`](../src/lib/mail/order-mail.ts), transporter dùng chung ở [`src/lib/mail/transport.ts`](../src/lib/mail/transport.ts) (Gmail SMTP, chung với OTP).
 
 ---
 
-### 2. POST `/api/orders/[id]/payos/create` — Tạo link thanh toán PayOS
+## Bảng lỗi
 
-**Mục đích:** Customer tạo một link thanh toán PayOS cho đơn hàng của họ.
-
-**Auth:** Chỉ customer là owner của order (checked `order.customer_id === profile.id`).
-
-**Luồng:**
-```
-GET order by ID
-    │
-    ▼
-① Check: order exists + customer_id matches
-    │
-    ▼
-② Check: !order.payment_status === 'paid' (chưa thanh toán)
-    │
-    ▼
-③ Check: total_amount > 0
-    │
-    ▼
-④ Check: !order.payos_payment_id (chưa có link nào trước đó)
-    │
-    ▼
-⑤ Check: order.status ∈ PAYABLE_STATUSES
-   PAYABLE_STATUSES = ['pending', 'staff_review', 'confirmed', 'deposit_paid']
-    │
-    ▼
-⑥ Generate unique orderCode = timestamp-based (6-digit min)
-    │
-    ▼
-⑦ Call createPaymentLink(orderCode, totalAmount, description, returnUrl)
-   → PayOS API v2
-   → Headers: X-ClientId, X-API-Key, X-Paysignature (HMAC-SHA256)
-   → Body: { orderCode, amount, description, cancelUrl, returnUrl }
-    │
-    ▼
-⑧ Save payos_payment_id to orders table
-    │
-    ▼
-⑨ Return { paymentUrl, payosPaymentId }
-```
-
-**File:** [`src/app/api/orders/[id]/payos/create/route.ts`](../src/app/api/orders/%5Bid%5D/payos/create/route.ts)
-
-**关键点:**
-- Mỗi order chỉ tạo được 1 link PayOS duy nhất
-- Link chỉ valid khi order chưa được thanh toán
-- Sau khi tạo → redirect customer đến PayOS URL
-- `payos_payment_id` được lưu để webhook có thể tìm đúng order
+| Tình huống | Response | Việc cần làm |
+|---|---|---|
+| Chưa đăng nhập | 401 | Đăng nhập |
+| Vượt tồn kho | 409 + `issues` | Giảm số lượng |
+| Đơn chưa chốt giá mà tạo link | 400 `Đơn chưa được chốt giá…` | Chờ staff xác nhận |
+| Đã có link PayOS đang mở | 409 + `existingPaymentId` | Dùng link cũ |
+| Checksum webhook sai | 400 | Bỏ qua (giả mạo/replay) |
+| Số tiền webhook < `payos_amount` | 400 | Không ghi nhận, kiểm tra thủ công |
+| Chuyển production khi chưa cọc | 409 `Đơn từ 5.000.000đ phải đặt cọc 50%…` | Thu cọc trước |
 
 ---
 
-### 3. POST `/api/payos/webhook` — Xử lý callback từ PayOS
-
-**Mục đích:** Khi customer hoàn tất thanh toán trên PayOS → PayOS gọi webhook này.
-
-**Auth:** Public endpoint (gọi từ server PayOS, không cần auth).
-
-**Luồng (đơn giản):**
-```
-① Verify checksum HMAC-SHA256 từ PayOS payload
-   → Không match? return 400 'Invalid checksum'
-    │
-    ▼
-② Chỉ process khi body.status === 'paid'
-   → Các status khác (cancelled) ignore
-    │
-    ▼
-③ Find order by payos_payment_id (orderCode)
-   → Không tìm thấy? return 200 (don't retry unknown orders)
-    │
-    ▼
-④ Idempotency check: nếu payment_status === 'paid' rồi → skip
-    │
-    ▼
-⑤ Amount verification: total_amount !== webhook.amount → log error, return success
-   (Don't auto-update — let staff handle manually)
-    │
-    ▼
-⑥ Update order: set payment_status = 'paid', payment_method = 'payos'
-    │
-    ▼
-⑦ Auto-transition: nếu order status ∈ ['confirmed', 'deposit_paid']
-   → Move to 'production'
-   → Log history entry
-    │
-    ▼
-⑧ Log payment confirmation in order_status_history
-   → notes: "Đã thanh toán qua PayOS — Transaction: XXX"
-    │
-    ▼
-⑨ Return { status: 'Success' }
-```
-
-**File:** [`src/lib/payos/webhook.ts`](../src/lib/payos/webhook.ts), [`src/app/api/payos/webhook/route.ts`](../src/app/api/payos/webhook/route.ts)
-
-**关键点:**
-- Webhook MUST be idempotent (PayOS có thể retry nhiều lần)
-- Amount mismatch → NOT automatic fail, just log and return success
-- Chỉ auto-transition confirmed/deposit_paid → production
-- pending/staff_review vẫn đứng yên, chờ staff xác nhận thủ công
-
----
-
-## Chi Tiết Database Schema
-
-### Table: `orders` (relevant columns)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `status` | text | Status workflow: pending → staff_review → confirmed → deposit_paid → production → completed → delivered |
-| `payment_status` | text | 'unpaid' \| 'deposit_paid' \| 'paid' |
-| `payment_method` | text | 'cod' \| 'bank_transfer' \| 'payos' (CHECK constraint) |
-| `total_amount` | numeric | Tổng tiền đơn hàng |
-| `deposit_amount` | numeric | Tiền đặt cọc (nếu total ≥ threshold) |
-| `payos_payment_id` | text | External PayOS transaction ID |
-| `customer_id` | uuid | FK → profiles.id |
-
-### Table: `order_status_history`
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `order_id` | uuid | FK → orders.id |
-| `from_status` | text | Previous status (nullable for initial) |
-| `to_status` | text | New status |
-| `changed_by` | uuid | FK → profiles.id (who triggered the change) |
-| `notes` | text | Free-text explanation |
-| `created_at` | timestamptz | When status changed |
-
----
-
-## Chi Tiết Client-Side (Frontend)
-
-### checkout-form.tsx — Form thanh toán
-
-```tsx
-// State management
-const [serverError, ...] = useState('') // Server-side validation errors
-const [issues, ...] = useState([]) // Stock issues (409 conflict)
-const [createdOrder, ...] = useState(null) // Success response
-const [selectedPaymentMethod, ...] = useState('cod') // Last chosen method
-
-// onSubmit flow
-async function onSubmit(values) {
-  // 1. Call /api/checkout with cart IDs + payment method + addressId
-  const response = await fetch('/api/checkout', { ... })
-  
-  // 2a. Handle 409 — stock issues
-  if (response.status === 409 && body?.issues) {
-    setIssues(body.issues) // Show what's overstock
-    return
-  }
-  
-  // 2b. Handle other errors
-  if (!response.ok) {
-    setServerError(translateCheckoutError(body?.error))
-    return
-  }
-  
-  // 2c. Success!
-  notifyCartUpdated() // Updates cart badge in navbar
-  setSelectedPaymentMethod(method)
-  setCreatedOrder(body.data) // Shows success UI
-}
-```
-
-### checkout-parts.tsx — CheckoutSuccess component
-
-```tsx
-export function CheckoutSuccess({ order, paymentMethod }) {
-  async function payWithPayOS() {
-    // Redirect to PayOS for checkout
-    const res = await fetch(`/api/orders/${order.id}/payos/create`, { method: 'POST' })
-    const data = await res.json().catch(() => ({}))
-    if (res.ok && data.paymentUrl) {
-      window.location.href = data.paymentUrl
-    }
-  }
-  
-  useEffect(() => {
-    // Auto-trigger PayOS redirect when payment method is PayOS
-    if (paymentMethod === 'payos') {
-      void payWithPayOS()
-    }
-  }, [paymentMethod])
-  
-  // Render success card with order info + CTA buttons
-}
-```
-
-**关键点:**
-- Khi chọn PayOS → tự động redirect ngay sau khi order tạo xong
-- Khi chọn COD/Bank Transfer → customer chờ staff xác nhận
-- Sau khi redirect PayOS → customer trở lại site → webhook sẽ cập nhật payment_status
-
----
-
-## PayOS Integration Details
-
-### Env Variables Required
+## Env
 
 ```bash
-PAYOS_CLIENT_ID=<your merchant ID from dashboard>
-PAYOS_API_KEY=<admin API key>
-PAYOS_CHECKSUM_KEY=<checksum signing key>
+PAYOS_CLIENT_ID=
+PAYOS_API_KEY=
+PAYOS_CHECKSUM_KEY=
+NEXT_PUBLIC_SITE_URL=   # https, dùng cho returnUrl/cancelUrl
 ```
 
-### Signature Algorithm
+## Lưu Ý
 
-```javascript
-// For creating payment links:
-requestBody = JSON.stringify({
-  orderCode, amount, description, cancelUrl, returnUrl
-})
-signature = HMAC-SHA256(requestBody, CHECKSUM_KEY)
-headers = {
-  'X-ClientId': CLIENT_ID,
-  'X-API-Key': API_KEY,
-  'X-Paysignature': signature
-}
-```
-
-### Webhook Verification
-
-```javascript
-// Incoming webhook payload contains webhookChecksum
-verifyWebhookChecksum(payload):
-  remove webhookChecksum from payload
-  compute = HMAC-SHA256(JSON.stringify(rest), CHECKSUM_KEY)
-  return compute === provided_webhookChecksum
-```
-
-**Note:** PayOS v2 API expects:
-- `amount` as integer (rounded)
-- `description` must be ≤ 255 characters
-- `returnUrl` must be HTTPS
-- `cancelUrl` must be HTTPS
-
----
-
-## Error Handling Summary
-
-| Scenario | Error Response | Action |
-|----------|---------------|--------|
-| Unauthorized (no session) | 401 `{ error: 'Unauthorized' }` | Redirect to login |
-| Cart not found / empty | 409 `{ error: 'Giỏ hàng đã thay đổi...' }` | Reload page |
-| Overstock detected | 409 `{ issues: [...] }` | Show issues, let user adjust quantity |
-| Invalid form data | 400 `{ details: {...} }` | Display validation errors in form |
-| PayOS already paid | 400 `{ error: 'Order already paid' }` | Refresh order status |
-| Non-payable status | 400 `{ error: 'Cannot create payment link...' }` | Wait for staff to confirm |
-| PayOS creation fails | 500 `{ error: err.message }` | Display error message |
-| Webhook checksum invalid | 400 `{ status: 'Failure' }` | Ignore (malicious/replay) |
-| Webhook amount mismatch | 200 `{ status: 'Success' }` | Log, let staff handle manually |
-
----
-
-## Lưu Ý Quan Trọng
-
-1. **RLS (Row Level Security)**: Tất cả query đi qua admin client (bypass RLS). Điều này có nghĩa staff/customer chỉ có thể thao tác thông qua API route, không truy cập trực tiếp database.
-
-2. **Idempotency**: Webhook handler phải an toàn với duplicate calls. Sử dụng `payment_status === 'paid'` làm guard chính.
-
-3. **Concurrency**: Có race condition tiềm ẩn giữa webhooks từ PayOS và manual updates từ staff. Hiện tại đang dùng optimistic approach (webhook overwrite, staff override khi cần).
-
-4. **Missing route**: File `src/app/api/orders/[id]/payos/status/route.ts` hiện chứa code của `products-admin.ts` — cần tạo lại route này để check trạng thái thanh toán real-time từ phía client.
-
-5. **Deposit logic**: Theo pricing config, nếu total_amount ≥ DEPOSIT_THRESHOLD thì tự động tính deposit = total × DEPOSIT_PERCENTAGE. Customer phải thanh toán deposit trước khi sản xuất.
+1. **RLS**: mọi query đi qua admin client (service role). Khách/staff chỉ thao tác qua API route.
+2. **Idempotency**: `payment_status === 'paid'` là guard chính; webhook an toàn với retry.
+3. **Sau khi thu tiền, `payos_payment_id` bị xoá** để lần thu tiếp theo (phần còn lại sau cọc) tạo được link mới. `payos_transaction_id` giữ lại để tra cứu.
+4. **Self-check**: `npx tsx scripts/order-payment-selfcheck.mts` (luật cọc/thanh toán) và `npx tsx scripts/order-mail-selfcheck.mts` (nội dung mail theo từng bước).

@@ -51,6 +51,7 @@ const ORDER_LIST_SELECT = `
   deposit_amount,
   payment_method,
   payment_status,
+  payos_checkout_url,
   contact_name,
   contact_phone,
   contact_email,

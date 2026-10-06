@@ -13,11 +13,16 @@ export type CreatedCheckoutOrder = {
   id: string
   order_code: string
   total_amount: number | string | null
+  deposit_amount: number | string | null
   payment_method: string | null
 }
 
 /** Màn hình cảm ơn sau khi đặt. */
 export function CheckoutSuccess({ order }: { order: CreatedCheckoutOrder }) {
+  // KHÔNG mời trả tiền ở đây: đơn vừa tạo luôn ở 'pending', giá còn tạm tính.
+  // Staff xác nhận + chốt giá xong mới gửi mail mời thanh toán.
+  const deposit = Number(order.deposit_amount ?? 0)
+
   return (
     <Card className="mx-auto max-w-xl">
       <CardContent className="p-8 text-center">
@@ -38,6 +43,16 @@ export function CheckoutSuccess({ order }: { order: CreatedCheckoutOrder }) {
             </dd>
           </div>
         </dl>
+        <p className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          Sau khi nhân viên xác nhận và chốt giá, chúng tôi sẽ gửi email hướng dẫn bước thanh toán
+          cho bạn.
+        </p>
+        {deposit > 0 ? (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Đơn từ mức quy định sẽ phải đặt cọc <strong>{formatCurrency(deposit)}</strong> trước khi
+            sản xuất, kể cả khi chọn COD. Số tiền này có thể thay đổi theo giá nhân viên chốt.
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/dashboard/orders" className={buttonVariants()}>
             Xem đơn hàng của tôi

@@ -1,50 +1,30 @@
 /**
- * POST /api/orders/[id]/confirm/route.ts
- * Staff confirms order and transitions to production status.
+ * POST /api/orders/[id]/confirm
+ * Staff chốt đơn: pending/staff_review → confirmed (trừ kho).
+ * Đơn đã cọc (deposit_paid) → production.
+ *
+ * Đi qua transitionOrderStatus để dùng chung máy trạng thái: CAS, ghi history,
+ * trừ kho khi confirmed, và CHẶN vào production nếu đơn phải cọc mà chưa cọc.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/server'
+
 import { getCurrentProfile } from '@/lib/data/orders'
-import { assertStaff, ProductAdminError } from '@/lib/data/products-admin'
+import { getOrderStatusRow, isStaffRole, StatusError, transitionOrderStatus } from '@/lib/data/orders-status'
 
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const resolvedParams = await params
   const profile = await getCurrentProfile()
-  
-  if (!profile) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isStaffRole(profile.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    assertStaff(profile)
-  } catch (error) {
-    if (error instanceof ProductAdminError) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-    throw error
-  }
+    const order = await getOrderStatusRow(resolvedParams.id)
 
-  const orderId = resolvedParams.id
-
-  try {
-    const admin = await createAdminClient()
-
-    // Get current order
-    const { data: order, error: fetchError } = await admin
-      .from('orders')
-      .select('id, status')
-      .eq('id', orderId)
-      .single()
-
-    if (fetchError || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
-    }
-
-    // Only allow confirm from certain statuses
     const allowedStatuses = ['pending', 'staff_review', 'confirmed', 'deposit_paid']
     if (!allowedStatuses.includes(order.status)) {
       return NextResponse.json(
@@ -53,36 +33,26 @@ export async function POST(
       )
     }
 
-    // Determine target status based on current status
-    let targetStatus: string
-    if (order.status === 'deposit_paid') {
-      targetStatus = 'production'
-    } else {
-      targetStatus = 'confirmed'
-    }
+    const nextStatus = order.status === 'deposit_paid' ? 'production' : 'confirmed'
 
-    // Update order status
-    const { error: updateError } = await admin
-      .from('orders')
-      .update({
-        status: targetStatus,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', orderId)
-
-    if (updateError) {
-      console.error('Failed to confirm order:', updateError)
-      return NextResponse.json({ error: 'Failed to confirm order' }, { status: 500 })
-    }
+    const updated = await transitionOrderStatus({
+      order,
+      nextStatus,
+      notes: `Staff ${profile.full_name || profile.id} xác nhận đơn`,
+      changedBy: profile.id,
+      role: profile.role,
+    })
 
     return NextResponse.json({
       success: true,
-      status: targetStatus,
-      message: targetStatus === 'production' 
-        ? 'Đã xác nhận & chuyển sang sản xuất' 
-        : 'Đã xác nhận đơn hàng',
+      status: updated.status,
+      message:
+        nextStatus === 'production' ? 'Đã xác nhận & chuyển sang sản xuất' : 'Đã xác nhận đơn hàng',
     })
   } catch (error) {
+    if (error instanceof StatusError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     console.error('Confirm order error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

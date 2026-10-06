@@ -24,15 +24,18 @@ const ORDER_STATUS_DISPLAY: Record<OrderStatus, string> = {
 
 export type OrderStatus = (typeof ORDER_STATUS_SEQUENCE)[number]
 export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid'
-export type PaymentMethod = 'cod' | 'bank_transfer' | 'payos'
+/**
+ * bank_transfer được thi hành qua PayOS — PayOS là cổng, không phải phương thức.
+ * COD không thu trước (trừ khoản cọc bắt buộc của đơn lớn).
+ */
+export type PaymentMethod = 'cod' | 'bank_transfer'
 
 /** Human-readable label for payment method */
 export function getPaymentMethodLabel(method: PaymentMethod | null | undefined): string {
   if (!method) return 'Chưa chọn'
   const labels: Record<string, string> = {
     cod: 'Thanh toán khi nhận hàng (COD)',
-    bank_transfer: 'Chuyển khoản ngân hàng',
-    payos: 'Thanh toán qua PayOS',
+    bank_transfer: 'Chuyển khoản ngân hàng (PayOS)',
   }
   return labels[method] ?? method
 }
@@ -74,6 +77,8 @@ export type CustomerOrder = {
   deposit_amount: number | string | null
   payment_method: PaymentMethod | null
   payment_status: PaymentStatus
+  /** Link PayOS đang mở — còn thì mời khách quay lại trả tiếp, khỏi gọi PayOS tạo link mới. */
+  payos_checkout_url: string | null
   contact_name: string | null
   contact_phone: string | null
   contact_email: string | null

@@ -618,7 +618,21 @@ Di dời trước khi xoá: `ProductOption` → `src/features/products/types.ts`
 |---|---|
 | Shop (`/shop`) | hàng có sẵn → `Thêm vào giỏ` / `Mua ngay` |
 | Thùng theo yêu cầu (`/dashboard/custom`) | mẫu đã lưu + tự nhập quy cách → giỏ |
-| Giỏ hàng (`/dashboard/cart`) + Thanh toán (`/dashboard/checkout`) | chọn dòng, chọn địa chỉ đã lưu, đặt |
+| Giỏ hàng (`/dashboard/cart`) + Thanh toán (`/dashboard/checkout`) | chọn dòng, bật/sửa in ấn, chọn địa chỉ đã lưu, đặt |
+
+**In ấn ngay trong giỏ** (`src/components/cart/cart-print-editor.tsx`): mỗi dòng giỏ —
+**cả hàng kho lẫn hàng theo yêu cầu** — có công tắc "In ấn cho dòng này". Bật thì xổ ra
+form ngay trong dòng: `PrintPositionField` (vị trí in theo kiểu thùng của dòng), `LogoPicker`
+(ảnh logo cần in) và `DielinePicker` (file khuôn bế SVG khách tự dựng). Nút Lưu chỉ bật khi
+có vị trí in + logo. File upload qua `/api/upload` (`purpose=logo` / `purpose=dieline`), rồi
+`PATCH /api/cart/[id]` với `{ printing }`; server suy ra `printPositionLabel` nên client
+không spoof được nhãn hiển thị cho xưởng.
+
+Kiểu thùng của dòng lấy qua `boxStyleIdForCartLine()` (`src/lib/config/print-positions.ts`):
+dòng custom dùng `custom.boxStyleId`, hàng kho không có → mặc định RSC. `products.box_type`
+là trục khác (`regular-slotted`…), không map được sang `box_styles.id`.
+
+Đây **không** phải luồng mockup AI — giỏ chỉ thu thập thông số in, không sinh ảnh.
 
 Hành vi khác biệt so với bản cũ: màn kết quả tư vấn không còn `Đặt hàng ngay` →
 `/order?consultation=…`; thay bằng đúng hai nút giỏ hàng, và **cần đăng nhập**
@@ -1295,8 +1309,11 @@ sau."`, icon `WarningCircle`, khối `border-red-200 bg-red-50 p-4`.
 
 ### PrintPreviewStrip — `src/components/order/print-preview-strip.tsx` ✅
 Hàng thumbnail nhỏ (mockup + khuôn bế) cho `order_items`. Prop `size` (`sm` mặc định,
-`md` ở §13). ⚠️ Dùng raw `<img>` chứ không `next/image` vì `next.config.mjs` chỉ whitelist
-`picsum.photos` (có comment xác nhận trong file).
+`md` ở §13). Dùng ở màn chi tiết đơn, danh sách đơn, đặt lại, và **màn staff
+`/staff/orders/[id]`** (nơi xưởng lấy file in). Chỉ cần `printing_specs` nên nhận
+`{ printing_specs }` thay vì cả `OrderItem`. ⚠️ Dùng raw `<img>` chứ không `next/image`
+vì `next.config.mjs` chỉ whitelist `picsum.photos` (có comment xác nhận trong file).
+File SVG khách tải lên cũng render qua `<img>` — **không** đưa vào `dangerouslySetInnerHTML`.
 
 ### FadeIn — `src/components/ui/FadeIn.tsx` ✅
 `motion/react` wrapper, dùng dày đặc ở `/about`.
@@ -1367,13 +1384,14 @@ Sinh từ `find src/app -name 'page.tsx'` — **22 route**.
 |---|---|
 | `src/features/dieline/` | `DielinePreview.tsx` |
 | `src/features/products/` | `components/CatalogTable.tsx`, `components/PriceTierCards.tsx`, `types.ts`, `utils.ts` |
-| `src/app/(public)/consultation/` | Toàn bộ UI tư vấn + print mockup (`consultation-*.tsx`, `print-mockup-*.tsx`, `consultation-schema.ts`, `step-indicator.tsx`) |
+| `src/app/(public)/consultation/` | Toàn bộ UI tư vấn + print mockup (`consultation-*.tsx`, `print-mockup-panel.tsx`, `consultation-schema.ts`, `step-indicator.tsx`) |
 | `src/app/(public)/order/` | Chỉ còn `page.tsx` (redirect) — form đơn đã nghỉ, xem §7 |
 | `src/app/(public)/shop/` | `page.tsx`, `product-card.tsx` |
 | `src/app/(auth)/dashboard/cart/` | `cart-view.tsx`, `cart-line-row.tsx`, `custom-line-editor.tsx` |
 | `src/app/(auth)/dashboard/checkout/` | `checkout-form.tsx`, `checkout-parts.tsx` |
 | `src/app/(auth)/dashboard/custom/` | `page.tsx`, `saved-profile-cards.tsx`, `custom-spec-form.tsx` |
-| `src/components/cart/` | `cart-events.ts`, `use-add-to-cart.ts`, `custom-cart-actions.tsx` |
+| `src/components/cart/` | `cart-events.ts`, `use-add-to-cart.ts`, `custom-cart-actions.tsx`, `cart-print-editor.tsx` |
+| `src/components/consultation/` | `fields.tsx`, `print-mockup-controls.tsx` (`PrintPositionField`, `LogoPicker`, `DielinePicker`, `MockupPreview`) |
 | `src/components/checkout/` | `address-picker.tsx`, `address-form-modal.tsx` |
 | `src/components/modals/` | 7 file M1–M6 (tên PascalCase) |
 | `src/components/layout/` | `navbar.tsx`, `footer.tsx`, `DashboardNav.tsx`, `StaffSidebar.tsx` |

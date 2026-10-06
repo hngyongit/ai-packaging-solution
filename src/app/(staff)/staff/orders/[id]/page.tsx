@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConsultationStatusBadge } from '@/components/ui/consultation-status-badge'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { StatusTimeline } from '@/components/ui/status-timeline'
+import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
 import { formatCurrency, formatDateTime, getPaymentMethodLabel, toNumber } from '@/lib/data/order-shared'
 import { getStaffOrderById } from '@/lib/data/orders-list'
 import { getCurrentProfile } from '@/lib/data/orders'
 import { assertStaff, ProductAdminError } from '@/lib/data/products-admin'
 import { getStatusMetadata } from '@/lib/data/orders-status'
+import { canEnterProduction } from '@/lib/data/order-payment'
 import { cn } from '@/lib/utils'
 
 import { StaffOrderActions } from './staff-order-actions'
@@ -27,6 +29,7 @@ type OrderItemRow = {
   unit_price: number | string
   subtotal: number | string
   dimensions: Record<string, unknown> | null
+  printing_specs: Record<string, unknown> | null
   is_custom?: boolean | null
   product: { stock_quantity: number | null } | null
 }
@@ -76,6 +79,10 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
                     <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
                     <p className="font-mono text-xs text-gray-500">{item.product_code}</p>
                     <p className="mt-1 text-xs text-gray-500">{formatDims(item.dimensions)}</p>
+                    {/* File in khách gửi (logo + khuôn bế SVG) — xưởng bế/in theo đây. */}
+                    <div className="mt-2">
+                      <PrintPreviewStrip item={item} />
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-900">{item.quantity} thùng</p>
@@ -136,6 +143,7 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
             status={order.status}
             stockSummary={stockSummary}
             allowedTransitions={metadata.allowedTransitions}
+            canProduce={canEnterProduction(order)}
           />
 
           <Card>

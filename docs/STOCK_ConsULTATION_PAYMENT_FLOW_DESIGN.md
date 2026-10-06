@@ -1,5 +1,11 @@
 # Thiết Kế Luồng Thanh Toán Cho Stock Consultation
 
+> ⚠️ **Tài liệu thiết kế lịch sử.** Luật thanh toán hiện hành nằm ở
+> [`PAYMENT_FLOW_EXPLAINED.md`](./PAYMENT_FLOW_EXPLAINED.md) và
+> [`src/lib/data/order-payment.ts`](../src/lib/data/order-payment.ts).
+> PayOS nay là **cơ chế thi hành của bank_transfer**, không phải phương thức riêng;
+> cọc bắt buộc với đơn ≥ 5.000.000đ kể cả COD.
+
 ## TÓM TẮT YÊU CẦU
 
 Thiết kế lại flow mua thùng carton **có sẵn** (stock products):
