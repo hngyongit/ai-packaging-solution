@@ -31,9 +31,15 @@ export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
   const [user, setUser] = useState<{ email?: string } | null>(null)
   const [cartCount, setCartCount] = useState(0)
 
+  // onAuthStateChange để navbar đổi ngay sau khi đăng nhập bằng modal ở trang public
+  // (getUser một lần trong useEffect không thấy được login xảy ra sau đó).
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null))
+    return () => subscription.unsubscribe()
   }, [])
 
   // Badge giỏ hàng: tải lần đầu khi đã đăng nhập, refresh khi có sự kiện cart:updated.

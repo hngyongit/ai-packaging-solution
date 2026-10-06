@@ -28,11 +28,10 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await getAuthenticatedProfile()
-    if (!profile) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    const { id } = await createConsultation(parsed.data, profile.id)
+    // Tư vấn chạy ẩn danh được — đăng nhập chỉ bắt buộc ở bước lưu dữ liệu
+    // (thêm giỏ / đặt hàng / lưu mẫu). Chưa login → customer_id = NULL.
+    const { id } = await createConsultation(parsed.data, profile?.id ?? null)
 
     const provider = getAIProvider()
     let recommendation = await provider.recommend(parsed.data, catalog)

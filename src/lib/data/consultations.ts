@@ -57,7 +57,8 @@ export const consultationInputSchema = z.object({
 
 export type ConsultationInput = z.infer<typeof consultationInputSchema>
 
-export async function createConsultation(input: ConsultationInput, customerId: string): Promise<{ id: string }> {
+/** `customerId = null` → tư vấn ẩn danh (khách chưa đăng nhập vẫn xem được kết quả). */
+export async function createConsultation(input: ConsultationInput, customerId: string | null): Promise<{ id: string }> {
   const admin = await createAdminClient()
   const { data, error } = await admin
     .from('consultations')
@@ -149,4 +150,21 @@ export async function getConsultation(id: string): Promise<ConsultationRow | nul
     .maybeSingle<ConsultationRow>()
   if (error) throw new Error(`Failed to fetch consultation: ${error.message}`)
   return data
+}
+
+/**
+ * Gán tư vấn ẩn danh cho user vừa đăng nhập.
+ * `.is('customer_id', null)` là CAS: tư vấn đã có chủ thì không giành được.
+ * Trả false khi tư vấn đã thuộc người khác — caller cứ tiếp tục, guard phía sau sẽ chặn.
+ */
+export async function claimConsultation(id: string, userId: string): Promise<boolean> {
+  const admin = await createAdminClient()
+  const { data, error } = await admin
+    .from('consultations')
+    .update({ customer_id: userId, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('customer_id', null)
+    .select('id')
+  if (error) throw new Error(`Failed to claim consultation: ${error.message}`)
+  return (data?.length ?? 0) > 0
 }

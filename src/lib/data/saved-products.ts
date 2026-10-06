@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 
 import { printPositionLabel } from '@/lib/config/print-positions'
-import { getConsultation } from './consultations'
+import { getConsultation, claimConsultation } from './consultations'
 
 // Mẫu thùng đã lưu từ phiên tư vấn AI (saved_products) — profile tái sử dụng ở /order.
 
@@ -73,7 +73,7 @@ export async function saveCustomProfile(input: {
 
   // Tư vấn ẩn danh → nhận chủ khi lưu (plan Phase 3).
   if (!consultation.customer_id) {
-    await admin.from('consultations').update({ customer_id: input.userId }).eq('id', consultation.id)
+    await claimConsultation(consultation.id, input.userId)
   }
 
   const { data, error } = await admin

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { claimConsultationAfterLogin, useRequireLogin } from '@/components/auth/require-login'
+
 import { notifyCartUpdated } from './cart-events'
 
 // Một lần gọi /api/cart cho cả "Thêm vào giỏ" và "Mua ngay" (thêm rồi sang
@@ -24,6 +26,7 @@ export type CartStatus = 'idle' | 'saving' | 'added' | 'error'
 
 export function useAddToCart() {
   const router = useRouter()
+  const requireLogin = useRequireLogin()
   const [status, setStatus] = useState<CartStatus>('idle')
   const [error, setError] = useState('')
 
@@ -38,12 +41,11 @@ export function useAddToCart() {
     })
 
     if (response.status === 401) {
-      setError('Vui lòng đăng nhập để tiếp tục.')
-      setStatus('error')
-      window.setTimeout(() => {
-        window.location.href = '/login'
-      }, 1200)
-      return null
+      setStatus('idle')
+      // Khách vãng lai: hiện form đăng nhập tại chỗ rồi chạy lại đúng hành động.
+      if (!(await requireLogin())) return null
+      await claimConsultationAfterLogin(payload.consultationId)
+      return add(payload)
     }
 
     const body = (await response.json().catch(() => null)) as { id?: string; error?: string } | null

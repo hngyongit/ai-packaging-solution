@@ -6,6 +6,7 @@ import { ShoppingBag } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { claimConsultationAfterLogin, useRequireLogin } from '@/components/auth/require-login'
 
 interface ContactFormProps {
   consultationId?: string
@@ -15,9 +16,11 @@ interface ContactFormProps {
 /**
  * Form thông tin liên hệ — hiện sau khi AI recommend xong.
  * Customer điền name/phone/email/address rồi click "Mua ngay" → tạo đơn.
+ * Khách vãng lai: hiện form đăng nhập tại chỗ rồi tạo đơn tiếp.
  */
 export function ContactForm({ consultationId, estimatedTotal }: ContactFormProps) {
   const router = useRouter()
+  const requireLogin = useRequireLogin()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -28,6 +31,11 @@ export function ContactForm({ consultationId, estimatedTotal }: ContactFormProps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    void submitOrder()
+  }
+
+  /** `retried` chặn vòng lặp khi server vẫn 401 sau khi đã đăng nhập (vd. tài khoản staff). */
+  async function submitOrder(retried = false) {
     setLoading(true)
     setError('')
 
@@ -56,6 +64,14 @@ export function ContactForm({ consultationId, estimatedTotal }: ContactFormProps
           paymentMethod: 'cod', // Mặc định COD, staff sẽ tạo PayOS link sau
         }),
       })
+
+      if (res.status === 401 && !retried) {
+        setLoading(false)
+        if (!(await requireLogin())) return
+        // Nhận tư vấn ẩn danh về tài khoản vừa login, nếu không server trả 404.
+        await claimConsultationAfterLogin(consultationId)
+        return submitOrder(true)
+      }
 
       const data = await res.json()
 

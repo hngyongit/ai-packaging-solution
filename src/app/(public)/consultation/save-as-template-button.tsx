@@ -6,10 +6,12 @@ import { CheckCircle, FloppyDisk } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
+import { claimConsultationAfterLogin, useRequireLogin } from '@/components/auth/require-login'
 
 /**
  * "Lưu làm mẫu" — lưu kết quả tư vấn AI vào saved_products để import lại ở
- * /order mà không phải gõ lại thông số. Cần đăng nhập (server trả 401 → hướng dẫn).
+ * /order mà không phải gõ lại thông số. Khách vãng lai → hiện form đăng nhập
+ * tại chỗ rồi lưu tiếp, không rời trang.
  */
 export function SaveAsTemplateButton({
   consultationId,
@@ -22,6 +24,7 @@ export function SaveAsTemplateButton({
   size?: 'default' | 'sm' | 'lg'
   className?: string
 }) {
+  const requireLogin = useRequireLogin()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -47,11 +50,11 @@ export function SaveAsTemplateButton({
       return
     }
     if (response.status === 401) {
-      setError('Bạn cần đăng nhập để lưu mẫu.')
+      // Khách vãng lai: đăng nhập tại chỗ rồi lưu lại, không rời trang.
       setStatus('idle')
-      window.setTimeout(() => {
-        window.location.href = '/login'
-      }, 1200)
+      if (!(await requireLogin())) return
+      await claimConsultationAfterLogin(consultationId)
+      void save()
       return
     }
     const body = (await response.json().catch(() => null)) as { error?: string } | null
