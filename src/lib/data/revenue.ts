@@ -17,7 +17,7 @@ export async function getMonthRevenue(): Promise<number> {
     .from('orders')
     .select('total_amount')
     .gte('created_at', firstDayOfMonth)
-    .in('status', ['confirmed', 'deposit_paid', 'production', 'completed', 'delivered'])
+    .in('status', ['confirmed', 'deposit_paid', 'production', 'completed', 'delivering', 'delivered'])
 
   if (error) {
     throw new Error(`Failed to get month revenue: ${error.message}`)

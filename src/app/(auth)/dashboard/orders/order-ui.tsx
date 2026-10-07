@@ -31,6 +31,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'confirmed', label: 'Đã xác nhận' },
   { value: 'production', label: 'Đang sản xuất' },
   { value: 'completed', label: 'Hoàn thành' },
+  { value: 'delivering', label: 'Đang giao' },
   { value: 'delivered', label: 'Đã giao' },
   { value: 'cancelled', label: 'Đã hủy' },
 ]
@@ -38,6 +39,7 @@ const FILTERS: { value: string; label: string }[] = [
 export const HISTORY_FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Tất cả' },
   { value: 'completed', label: 'Hoàn thành' },
+  { value: 'delivering', label: 'Đang giao' },
   { value: 'delivered', label: 'Đã giao' },
 ]
 

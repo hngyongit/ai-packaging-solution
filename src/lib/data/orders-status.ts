@@ -38,6 +38,11 @@ const ORDER_MAIL_COPY: Partial<Record<OrderStatus, { heading: string; intro: str
     heading: 'Đơn hàng đã hoàn thành',
     intro: 'Đơn của bạn đã sản xuất xong và chuẩn bị được giao.',
   },
+  delivering: {
+    heading: 'Đơn hàng đang được giao',
+    intro:
+      'Đơn của bạn đã rời xưởng và đang trên đường tới bạn. Khi nhận được hàng, bạn có thể vào trang đơn hàng để xác nhận đã nhận.',
+  },
   delivered: {
     heading: 'Đơn hàng đã được giao',
     intro: 'Đơn của bạn đã được giao. Cảm ơn bạn đã tin dùng AI Carton.',
@@ -61,7 +66,9 @@ const STAFF_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   confirmed: ['deposit_paid', 'production', 'cancelled'],
   deposit_paid: ['production', 'cancelled'],
   production: ['completed', 'cancelled'],
-  completed: ['delivered'],
+  completed: ['delivering'],
+  // Khách tự bấm "đã nhận hàng", hoặc staff chốt khi ĐVVC báo giao xong.
+  delivering: ['delivered'],
   delivered: [],
   cancelled: [],
 }
@@ -73,6 +80,7 @@ const CUSTOMER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   deposit_paid: [],
   production: [],
   completed: [],
+  delivering: ['delivered'],
   delivered: [],
   cancelled: [],
 }

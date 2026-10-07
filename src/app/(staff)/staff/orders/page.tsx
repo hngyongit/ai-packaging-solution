@@ -19,6 +19,8 @@ const STAFF_FILTERS = [
   ['staff_review', 'Đang duyệt'],
   ['confirmed', 'Đã chốt'],
   ['production', 'Đang sản xuất'],
+  ['completed', 'Chờ giao'],
+  ['delivering', 'Đang giao'],
 ] as const
 
 export default async function StaffOrdersPage({

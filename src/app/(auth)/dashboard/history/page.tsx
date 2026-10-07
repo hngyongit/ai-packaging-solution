@@ -19,7 +19,10 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   if (!profile) redirect('/login')
 
   const requestedStatus = getParam(searchParams.status)
-  const activeStatus = requestedStatus === 'completed' || requestedStatus === 'delivered' ? requestedStatus : null
+  const activeStatus =
+    requestedStatus === 'completed' || requestedStatus === 'delivering' || requestedStatus === 'delivered'
+      ? requestedStatus
+      : null
 
   try {
     const { orders, pagination } = await getCustomerOrders(profile.id, {

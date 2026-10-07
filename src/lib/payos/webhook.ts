@@ -17,12 +17,25 @@ const supabase = createSupabaseClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 })
 
 /**
+ * PayOS v2 KHÔNG gửi `status`: kết quả giao dịch nằm ở `data.code` ("00" = thành công),
+ * `code`/`success` ngoài envelope chỉ nói webhook giao được. Payload phẳng (bản cũ) thì
+ * kết quả nằm ở `status`. Đọc mã trong cùng trước, thiếu mới rơi ra ngoài.
+ */
+export function isPaymentSucceeded(body: Record<string, any>, payload: Record<string, any>) {
+  // Mã trong cùng là mã giao dịch — có thì chỉ tin nó, không để success ngoài envelope ghi đè.
+  if (payload.code !== undefined) return payload.code === '00'
+  if (payload.status !== undefined) return payload.status === 'paid' || payload.status === 'completed'
+  return body.code === '00' || body.success === true
+}
+
+/**
  * Xử lý callback từ PayOS.
  *
  * PayOS gửi dạng lồng:
- *   { code, desc, data: { orderCode, amount, paymentLinkId, transactionId, ... },
+ *   { code: "00", desc, success: true, data: { orderCode, amount, paymentLinkId, reference, ... },
  *     signature: hmacsha256(checksumKey, queryString của data) }
  * Chữ ký tính trên các field ĐÃ SẮP XẾP của `data`, không phải JSON lồng.
+ * Mã giao dịch nằm ở `data.reference` — payload v2 không có `status`.
  *
  * Ghi nhận thanh toán:
  *   - Đối chiếu số tiền với payos_amount đã lưu lúc tạo link (chống ghi thiếu).
@@ -61,7 +74,9 @@ export async function handlePayOSWebhook(body: Record<string, any>, rawBody?: st
     return NextResponse.json({ status: 'Failure', message: 'Invalid checksum' }, { status: 400 })
   }
 
-  const { orderCode, amount, transactionId, status, paymentLinkId } = payload
+  const { orderCode, amount, status, paymentLinkId, reference } = payload
+  // PayOS v2 gửi mã giao dịch ở `reference`; `transactionId` chỉ có ở payload phẳng cũ.
+  const transactionId: string | undefined = payload.transactionId || reference
 
   // Tìm đơn: paymentLinkId (khớp payos_payment_id lúc tạo) → payos_order_code → transactionId.
   let orderData: any = null
@@ -97,8 +112,11 @@ export async function handlePayOSWebhook(body: Record<string, any>, rawBody?: st
     return NextResponse.json({ status: 'Success', message: 'Payment link cancelled' }, { status: 200 })
   }
 
-  if (status !== 'paid' && status !== 'completed') {
-    return NextResponse.json({ status: 'Success', message: `Ignored status: ${status}` }, { status: 200 })
+  if (!isPaymentSucceeded(body, payload)) {
+    return NextResponse.json(
+      { status: 'Success', message: `Ignored: code=${payload.code ?? body.code}` },
+      { status: 200 }
+    )
   }
 
   // Idempotency — PayOS có thể retry. Đã tất toán thì không ghi lại.

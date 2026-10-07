@@ -209,7 +209,7 @@ CREATE POLICY "consultations_staff_update_all"
 
 Customer orders.
 
-**Status flow**: `pending → staff_review → confirmed → deposit_paid (if over threshold) → production → completed → delivered → cancelled`
+**Status flow**: `pending → staff_review → confirmed → deposit_paid (if over threshold) → production → completed → delivering → delivered → cancelled`
 
 ```sql
 CREATE TABLE orders (
@@ -224,7 +224,8 @@ CREATE TABLE orders (
       'deposit_paid',     -- Deposit received (if over threshold)
       'production',       -- In production
       'completed',        -- Produced
-      'delivered',        -- Delivered to customer
+      'delivering',       -- Handed to carrier, on the way to customer
+      'delivered',        -- Customer confirmed receipt (or staff closed it out)
       'cancelled'         -- Cancelled at any stage
     )),
   consultation_id UUID REFERENCES consultations(id),

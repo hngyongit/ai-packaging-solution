@@ -20,6 +20,7 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   deposit_paid: 'Đã đặt cọc',
   production: 'Đang sản xuất',
   completed: 'Hoàn thành',
+  delivering: 'Đang giao hàng',
   delivered: 'Đã giao hàng',
   cancelled: 'Đã hủy',
 } as const

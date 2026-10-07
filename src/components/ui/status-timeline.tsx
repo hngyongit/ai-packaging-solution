@@ -1,5 +1,6 @@
 import {
   CheckCircle,
+  CheckSquare,
   ClipboardText,
   CurrencyCircleDollar,
   Factory,
@@ -33,7 +34,7 @@ export function StatusTimeline({ order }: { order: CustomerOrderDetail }) {
     <Card className="mx-auto w-full max-w-5xl rounded-lg border-gray-200 shadow-[0_12px_36px_rgba(15,23,42,0.06)]">
       <CardContent className="px-4 py-8 sm:px-8">
         <div className="overflow-x-auto pb-1">
-          <ol className="grid min-w-[760px] grid-cols-7">
+          <ol className="grid min-w-[880px] grid-cols-8">
             {TIMELINE_STATUSES.map((status, index) => {
               const isPast = order.status !== 'cancelled' && index < activeIndex
               const isCurrent = order.status !== 'cancelled' && index === activeIndex
@@ -110,8 +111,10 @@ function renderTimelineIcon(status: OrderStatus) {
       return <Factory className={className} weight="bold" />
     case 'completed':
       return <SealCheck className={className} weight="bold" />
-    case 'delivered':
+    case 'delivering':
       return <Truck className={className} weight="bold" />
+    case 'delivered':
+      return <CheckSquare className={className} weight="bold" />
     case 'cancelled':
       return <CheckCircle className={className} weight="bold" />
   }

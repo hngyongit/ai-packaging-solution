@@ -28,6 +28,7 @@ import { PayNowButton } from '@/components/checkout/pay-now-button'
 import { CancelOrderButton } from '../cancel-order-button'
 import { PaymentBadge, StatusBadge } from '../order-ui'
 import { PayOSRedirectHandler } from './payos-redirect-handler'
+import { ConfirmReceiptButton } from './confirm-receipt-button'
 
 type OrderDetailPageProps = {
   params: { id: string }
@@ -54,6 +55,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const itemTotal = order.order_items.reduce((sum, item) => sum + toNumber(item.subtotal), 0)
   const canReorder = profile ? canReorderOrder(order.status) : false
   const canCancel = profile ? canCustomerCancelOrder(order.status) : false
+  // Đơn đang trên đường tới → khách tự đóng đơn khi nhận được hàng.
+  const canConfirmReceipt = Boolean(profile) && order.status === 'delivering'
   const outstanding = getOutstandingAmount(order)
   const canPayNow = Boolean(profile) && canPayViaPayOS(order)
   // Link PayOS còn mở → mời khách trả tiếp bằng chính link đó, khỏi tạo link mới.
@@ -179,6 +182,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <PayNowButton orderId={order.id} resumeUrl={resumePaymentUrl} label={payLabel} />
             ) : null}
             {canCancel ? <CancelOrderButton orderId={order.id} orderCode={order.order_code} /> : null}
+            {canConfirmReceipt ? <ConfirmReceiptButton orderId={order.id} /> : null}
             {canReorder ? (
               <Link href={`/dashboard/reorder?id=${order.id}`} className={cn(buttonVariants({ size: 'lg' }))}>
                 <ArrowClockwise className="h-4 w-4" />

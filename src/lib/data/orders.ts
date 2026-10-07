@@ -138,7 +138,16 @@ export async function getCustomerOrders(profileId: string, input: OrdersQuery = 
   }
 }
 
-const IN_PROGRESS_STATUSES = ['pending', 'staff_review', 'confirmed', 'deposit_paid', 'production'] as const
+// "Đang xử lý" = chưa tới tay khách: sản xuất xong và đang trên đường vẫn tính.
+const IN_PROGRESS_STATUSES = [
+  'pending',
+  'staff_review',
+  'confirmed',
+  'deposit_paid',
+  'production',
+  'completed',
+  'delivering',
+] as const
 
 export async function getCustomerDashboardStats(profileId: string) {
   const admin = await createAdminClient()

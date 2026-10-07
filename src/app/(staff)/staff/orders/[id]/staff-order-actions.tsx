@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, Factory, Prohibit } from '@phosphor-icons/react'
+import { CheckCircle, Factory, Prohibit, SealCheck, Truck } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { PriceChangeModal, isSignificantPriceChange, getPriceChangePercent } from '@/components/modals/PriceChange'
@@ -111,6 +111,10 @@ export function StaffOrderActions({
   const canConfirm = allowedTransitions.includes('confirmed')
   const canCancel = allowedTransitions.includes('cancelled')
   const canStartProduction = Boolean(canProduce) && allowedTransitions.includes('production')
+  const canComplete = allowedTransitions.includes('completed')
+  // Staff chốt khi ĐVVC báo giao xong, hoặc khi khách quên bấm xác nhận.
+  const canShip = allowedTransitions.includes('delivering')
+  const canDeliver = allowedTransitions.includes('delivered')
 
   return (
     <div className="space-y-2">
@@ -141,6 +145,44 @@ export function StaffOrderActions({
           <Factory className="h-4 w-4" />
           {busy ? 'Đang xử lý...' : 'Chuyển sang sản xuất'}
         </Button>
+      )}
+
+      {canComplete && (
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          onClick={() => patchStatus('completed')}
+        >
+          <SealCheck className="h-4 w-4" />
+          {busy ? 'Đang xử lý...' : 'Hoàn thành sản xuất'}
+        </Button>
+      )}
+
+      {canShip && (
+        <Button className="w-full" disabled={busy} onClick={() => patchStatus('delivering')}>
+          <Truck className="h-4 w-4" />
+          {busy ? 'Đang xử lý...' : 'Đưa hàng đi giao'}
+        </Button>
+      )}
+
+      {canShip && (
+        <p className="text-center text-xs text-gray-500">
+          Khách sẽ nhận mail báo hàng đang trên đường tới và tự xác nhận khi nhận được.
+        </p>
+      )}
+
+      {canDeliver && (
+        <Button variant="outline" className="w-full" disabled={busy} onClick={() => patchStatus('delivered')}>
+          <Truck className="h-4 w-4" />
+          {busy ? 'Đang xử lý...' : 'ĐVVC đã giao xong'}
+        </Button>
+      )}
+
+      {canDeliver && (
+        <p className="text-center text-xs text-gray-500">
+          Chỉ bấm khi khách chưa tự xác nhận — khách vẫn tự bấm được ở trang đơn hàng.
+        </p>
       )}
 
       {/* Price warning indicator */}

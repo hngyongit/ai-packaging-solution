@@ -5,11 +5,12 @@ export const ORDER_STATUS_SEQUENCE = [
   'deposit_paid',
   'production',
   'completed',
+  'delivering',
   'delivered',
   'cancelled',
 ] as const
 
-export const HISTORY_STATUSES = ['completed', 'delivered'] as const
+export const HISTORY_STATUSES = ['completed', 'delivering', 'delivered'] as const
 
 const ORDER_STATUS_DISPLAY: Record<OrderStatus, string> = {
   pending: 'Chờ xử lý',
@@ -17,8 +18,9 @@ const ORDER_STATUS_DISPLAY: Record<OrderStatus, string> = {
   confirmed: 'Đã xác nhận',
   deposit_paid: 'Đã đặt cọc',
   production: 'Đang sản xuất',
-  completed: 'Hoàn thành',
-  delivered: 'Đã giao',
+  completed: 'Sản xuất xong',
+  delivering: 'Đang giao hàng',
+  delivered: 'Đã giao hàng',
   cancelled: 'Đã hủy',
 }
 

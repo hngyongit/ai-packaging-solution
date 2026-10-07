@@ -45,7 +45,7 @@ export async function POST(
     }
 
     // Only allow cancel from certain statuses (not yet in production/completed)
-    const blockedStatuses = ['completed', 'delivered', 'cancelled']
+    const blockedStatuses = ['completed', 'delivering', 'delivered', 'cancelled']
     if (blockedStatuses.includes(order.status)) {
       return NextResponse.json(
         { error: `Cannot reject order from status: ${order.status}` },

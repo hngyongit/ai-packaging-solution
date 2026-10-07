@@ -277,37 +277,47 @@ Thứ tự server làm (`src/app/api/ai/mockup/route.ts` + `src/lib/mockup/reque
 ## 3. Order Status State Machine
 
 Nguồn thật duy nhất của transition: `STAFF_TRANSITIONS` + `CUSTOMER_TRANSITIONS`
-trong `src/app/api/orders/[id]/status/route.ts`. Server ép bằng CAS
+trong `src/lib/data/orders-status.ts`. Server ép bằng CAS
 (`.eq('status', order.status)`) rồi ghi `order_status_history`.
 
 ```
-  pending --> staff_review --> confirmed --> deposit_paid --> production --> completed --> delivered
+  pending --> staff_review --> confirmed --> deposit_paid --> production --> completed --> delivering --> delivered
      |             |               |               |              |
      |             |               |--> staff, bo qua coc -------+
      +-------------+---------------+--------------+--------------+---> cancelled
 
   Diem vao: customer submit -> pending.  cancelled: trang thai cut, khong duong ra.
   Staff huy duoc o 5 trang thai dau (pending ... production).
-  Customer chi huy duoc pending.  completed / delivered / cancelled: het transition.
+  Customer chi huy duoc pending.  completed / delivering / delivered / cancelled: het transition.
 ```
 
 
 | Từ trạng thái | Staff đi được tới | Customer đi được tới |
 |---|---|---|
-| `pending` | `staff_review`, `cancelled` | **`cancelled`** |
+| `pending` | `staff_review`, `confirmed`, `cancelled` | **`cancelled`** |
 | `staff_review` | `confirmed`, `cancelled` | — |
 | `confirmed` | `deposit_paid`, `production`, `cancelled` | — |
 | `deposit_paid` | `production`, `cancelled` | — |
 | `production` | `completed`, `cancelled` | — |
-| `completed` | `delivered` | — |
+| `completed` | `delivering` | — |
+| `delivering` | `delivered` | **`delivered`** |
 | `delivered` | — | — |
 | `cancelled` | — | — |
 
-> ⚠️ Doc cũ ghi "cancelled — any stage" là **sai**: `completed`, `delivered`,
-> `cancelled` không còn đường sang `cancelled`. Customer chỉ tự hủy được đơn ở
-> `pending` (`canCustomerCancelOrder()`).
+> ⚠️ Doc cũ ghi "cancelled — any stage" là **sai**: `completed`, `delivering`,
+> `delivered`, `cancelled` không còn đường sang `cancelled`. Customer chỉ tự hủy
+> được đơn ở `pending` (`canCustomerCancelOrder()`).
 > Nếu customer thử gọi transition của staff → **403** (không phải 400).
 > Trạng thái cuối cùng (không còn transition) → **409**.
+
+### 3.0 Mốc giao hàng
+
+`production → completed`: staff bấm "Hoàn thành sản xuất". `completed → delivering`:
+staff bấm "Đưa hàng đi giao" — mail `delivering` báo khách hàng đang trên đường.
+Khách tự bấm "Xác nhận đã nhận hàng" ở trang đơn (`ConfirmReceiptButton`) để đóng
+đơn, hoặc staff bấm "ĐVVC đã giao xong" khi đơn vị vận chuyển báo hoàn thành. Cả
+hai đường đi qua `PATCH /api/orders/[id]/status`, nên `CUSTOMER_TRANSITIONS` là
+nơi duy nhất định quyền. Không có mốc `delivered` tự động — phải có người bấm.
 
 ### 3.1 Nhãn trạng thái — HAI nguồn, lệch nhau
 
@@ -318,8 +328,9 @@ trong `src/app/api/orders/[id]/status/route.ts`. Server ép bằng CAS
 | `confirmed` | Đã xác nhận | Đã xác nhận |
 | `deposit_paid` | Đã đặt cọc | Đã đặt cọc |
 | `production` | Đang sản xuất | Đang sản xuất |
-| `completed` | Hoàn thành | Hoàn thành |
-| `delivered` | Đã giao | **Đã giao hàng** |
+| `completed` | Sản xuất xong | Hoàn thành |
+| `delivering` | Đang giao hàng | Đang giao hàng |
+| `delivered` | Đã giao hàng | **Đã giao hàng** |
 | `cancelled` | Đã hủy | Đã hủy |
 
 Không có emoji trong UI thật (doc cũ dùng ⏳👀✅💰🔧📦❌ — sai).
@@ -441,17 +452,18 @@ Trang thật là Server Component, Timeline nằm nguyên hàng trên; phía dư
 
 | | |
 |---|---|
-| Cấu trúc | `<ol className="grid min-w-[760px] grid-cols-7">` bọc trong `overflow-x-auto` → **7 cột**, loại `cancelled` khỏi dòng thời gian |
-| Icon | Phosphor per status: `CheckCircle` pending · `Package` staff_review · `ClipboardText` confirmed · `CurrencyCircleDollar` deposit_paid · `Factory` production · `SealCheck` completed · `Truck` delivered |
+| Cấu trúc | `<ol className="grid min-w-[880px] grid-cols-8">` bọc trong `overflow-x-auto` → **8 cột**, loại `cancelled` khỏi dòng thời gian |
+| Icon | Phosphor per status: `CheckCircle` pending · `Package` staff_review · `ClipboardText` confirmed · `CurrencyCircleDollar` deposit_paid · `Factory` production · `SealCheck` completed · `Truck` delivering · `CheckSquare` delivered |
 | Ngày | `dd/MM/yyyy` (`Asia/Ho_Chi_Minh`) từ `order_status_history.to_status` khớp; `pending` fallback `order.created_at`; chưa tới → `Đang chờ` |
 | Đã hủy | activeIndex lui về trạng thái cuối trước khi cancel, cả dòng thời gian render ở trạng thái "chưa đạt", + dòng đỏ `Đơn hàng đã hủy vào dd/MM/yyyy` |
-| Progress % | `getOrderProgress()`: `pending` 14% … `delivered` 100%, `cancelled` → 100. Dùng ở **danh sách** đơn, không phải trang detail |
+| Progress % | `getOrderProgress()`: `pending` 12% … `delivered` 100%, `cancelled` → 100. Dùng ở **danh sách** đơn, không phải trang detail |
 
 Nút action (đều guarded bằng helper, không phải tự suy trong JSX):
 
 | Nút | Hiện khi | Gọi gì |
 |---|---|---|
 | `Hủy đơn` | `canCustomerCancelOrder(status)` → chỉ `pending` | `CancelOrderModal` → `PATCH /api/orders/[id]/status` body `{status:'cancelled', notes}` (notes ghép từ lý do chọn + tự do) |
+| `Xác nhận đã nhận hàng` | `status === 'delivering'` | `ConfirmReceiptButton` → `PATCH /api/orders/[id]/status` body `{status:'delivered'}` |
 | `Đặt lại` | `canReorderOrder(status)` → `completed` \| `delivered` | `Link /dashboard/reorder?id=<id>` |
 | `Tất cả đơn hàng` | luôn | `Link /dashboard/orders` |
 

@@ -10,6 +10,7 @@ const ORDER_STATUSES = [
   'deposit_paid',
   'production',
   'completed',
+  'delivering',
   'delivered',
   'cancelled',
 ] as const
