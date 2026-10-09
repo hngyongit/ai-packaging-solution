@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
+import { OrdersRealtimeRefresh } from '@/components/order/orders-realtime-refresh'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import {
   canCustomerCancelOrder,
@@ -66,6 +67,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
   return (
     <div className="space-y-6">
+      <OrdersRealtimeRefresh orderId={order.id} includeHistory />
       {/* Auto-reload when PayOS redirects back with PAID status */}
       <PayOSRedirectHandler />
 

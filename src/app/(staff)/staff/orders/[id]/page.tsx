@@ -8,6 +8,7 @@ import { ConsultationStatusBadge } from '@/components/ui/consultation-status-bad
 import { StatusBadge } from '@/components/ui/status-badge'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
+import { OrdersRealtimeRefresh } from '@/components/order/orders-realtime-refresh'
 import { formatCurrency, formatDateTime, getPaymentMethodLabel, toNumber } from '@/lib/data/order-shared'
 import { getStaffOrderById } from '@/lib/data/orders-list'
 import { getCurrentProfile } from '@/lib/data/orders'
@@ -53,6 +54,7 @@ export default async function StaffOrderDetailPage({ params }: { params: { id: s
 
   return (
     <div className="space-y-6">
+      <OrdersRealtimeRefresh orderId={order.id} includeHistory />
       <Link href="/staff/orders" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft className="h-4 w-4" />
         Danh sách đơn hàng

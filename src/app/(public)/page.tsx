@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { MagnifyingGlass, Cube, Truck } from '@phosphor-icons/react'
 import { useEffect, useRef } from 'react'
 
@@ -212,8 +213,14 @@ export default function HomePage() {
         <section className="py-16 md:py-24 bg-gray-50">
           <div data-reveal className="reveal mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-8 lg:grid-cols-2 items-center">
-              <div className="aspect-[4/3] rounded-lg bg-gray-200 flex items-center justify-center">
-                <Cube className="h-16 w-16 text-gray-400" />
+              <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-200">
+                <Image
+                  src="/images/factory-workshop-clean.png"
+                  alt="Xưởng sản xuất bao bì carton với dây chuyền máy móc và thành phẩm"
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover object-center"
+                />
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">

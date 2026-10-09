@@ -49,6 +49,8 @@ export function CartView({ initialLines, fullName }: { initialLines: CartLine[];
       setError('Không cập nhật được số lượng. Vui lòng thử lại.')
     } else {
       setLines((prev) => prev.map((x) => (x.id === line.id ? { ...x, quantity } : x)))
+      notifyCartUpdated()
+      router.refresh()
     }
     setBusyId(null)
   }
@@ -60,6 +62,7 @@ export function CartView({ initialLines, fullName }: { initialLines: CartLine[];
       setLines((prev) => prev.filter((x) => x.id !== line.id))
       setSelected((prev) => prev.filter((x) => x !== line.id))
       notifyCartUpdated()
+      router.refresh()
     } else {
       setError('Không xoá được sản phẩm. Vui lòng thử lại.')
     }
@@ -78,6 +81,8 @@ export function CartView({ initialLines, fullName }: { initialLines: CartLine[];
       setError('Không cập nhật được quy cách. Vui lòng thử lại.')
     } else {
       setLines((prev) => prev.map((x) => (x.id === line.id ? { ...x, custom: spec } : x)))
+      notifyCartUpdated()
+      router.refresh()
     }
     setBusyId(null)
   }
