@@ -56,6 +56,9 @@ export function useAddToCart() {
     }
 
     notifyCartUpdated()
+    // Clear prefetched Server Component snapshots (especially /dashboard/cart)
+    // before the next client-side navigation reuses them.
+    router.refresh()
     setStatus('added')
     window.setTimeout(() => setStatus('idle'), 2000)
     return body.id

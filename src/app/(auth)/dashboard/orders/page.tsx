@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { buttonVariants } from '@/components/ui/button'
+import { OrdersRealtimeRefresh } from '@/components/order/orders-realtime-refresh'
 import { getCurrentProfile, getCustomerOrderById, getCustomerOrders, isOrderStatus, parsePage } from '@/lib/data/orders'
 import { cn } from '@/lib/utils'
 import { OrdersUrlModals } from './order-modals'
@@ -32,6 +33,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
     return (
       <div className="space-y-6">
+        <OrdersRealtimeRefresh customerId={profile.id} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Đơn hàng của tôi</h1>

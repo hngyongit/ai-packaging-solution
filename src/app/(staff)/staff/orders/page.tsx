@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { OrdersRealtimeRefresh } from '@/components/order/orders-realtime-refresh'
 import { getCurrentProfile } from '@/lib/data/orders'
 import { assertStaff, ProductAdminError } from '@/lib/data/products-admin'
 import { listOrders } from '@/lib/data/orders-list'
@@ -47,6 +48,7 @@ export default async function StaffOrdersPage({
 
   return (
     <div className="space-y-4">
+      <OrdersRealtimeRefresh />
       <div>
         <h1 className="text-xl font-bold tracking-tight text-gray-950">Đơn hàng</h1>
         <p className="mt-1 text-sm text-gray-500">Chốt đơn để trừ tồn kho và đưa sang sản xuất.</p>

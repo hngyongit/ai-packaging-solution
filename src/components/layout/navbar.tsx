@@ -50,7 +50,7 @@ export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
     }
     let active = true
     async function load() {
-      const response = await fetch('/api/cart/count').catch(() => null)
+      const response = await fetch('/api/cart/count', { cache: 'no-store' }).catch(() => null)
       if (!response?.ok) return
       const body = (await response.json().catch(() => null)) as { count?: number } | null
       if (active) setCartCount(body?.count ?? 0)
