@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 const footerLinks = [
   {
@@ -31,14 +32,9 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
-            <Link
-              href="/"
-              className="text-xl font-bold tracking-tight text-gray-900"
-            >
-              AI Carton
-            </Link>
+            <BrandLogo compact />
             <p className="mt-2 text-sm text-gray-500 max-w-[30ch]">
-              Giải pháp đóng gói thông minh — bao bì carton theo yêu cầu với
+              Giải pháp đóng gói thông minh. Bao bì carton theo yêu cầu với
               báo giá AI trong 30 giây.
             </p>
           </div>
@@ -63,7 +59,7 @@ export function Footer() {
           ))}
         </div>
         <div className="mt-8 border-t border-gray-200 pt-6 text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} AI Carton Packaging. All rights
+          &copy; {new Date().getFullYear()} ThinhLoi Packaging. All rights
           reserved.
         </div>
       </div>

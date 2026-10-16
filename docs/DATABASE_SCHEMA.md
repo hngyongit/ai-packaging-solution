@@ -1,6 +1,6 @@
 # Database Schema — Supabase (PostgreSQL)
 
-> Initial schema for the AI Carton Packaging Solution Platform.
+> Initial schema for the ThinhLoi Packaging Solution Platform.
 > All tables have Row Level Security (RLS) enabled.
 
 ---

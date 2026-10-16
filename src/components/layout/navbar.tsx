@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { CART_UPDATED } from '@/components/cart/cart-events'
 import { NavHoverMenu } from '@/components/ui/nav-hover-menu'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 type NavLink = { href: string; label: string; description?: string; children?: NavLink[] }
 
@@ -75,12 +76,7 @@ export function Navbar({ hideAuth }: { hideAuth?: boolean }) {
     <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-tight text-gray-900"
-          >
-            AI Carton
-          </Link>
+          <BrandLogo />
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) =>
               link.children ? (

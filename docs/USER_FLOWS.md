@@ -1,4 +1,4 @@
-# User Flows & Navigation — AI Carton Packaging Solution
+# User Flows & Navigation — ThinhLoi Packaging Solution
 
 > Core flows for MVP. Designed for clarity, minimal steps, and customer comfort.
 

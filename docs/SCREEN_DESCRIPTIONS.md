@@ -1,4 +1,4 @@
-# Screen Descriptions — AI Carton Packaging Solution
+# Screen Descriptions — ThinhLoi Packaging Solution
 
 > **Đọc trước khi sửa**: Tài liệu này mô tả màn hình **đúng như code đang có trên đĩa**
 > (`src/app/**/page.tsx` + component thật), không phải mô tả thiết kế ước muốn. Ký hiệu:
@@ -107,7 +107,7 @@ Mỗi màn có:
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │  NAVBAR (sticky, bg-white/80 backdrop-blur-md) — xem L1       │
-│  AI Carton | Trang chủ | Tư vấn | Về chúng tôi | Bảng giá     │
+│  ThinhLoi Packaging | Trang chủ | Tư vấn | Về chúng tôi | Bảng giá     │
 │                                          [Đăng nhập][Đăng ký] │
 ├───────────────────────────────────────────────────────────────┤
 │  HERO — <section> cao 125dvh, nội dung sticky top-0           │
@@ -534,7 +534,7 @@ cũng là nơi duy nhất `CatalogTable` được dùng thật.
 **Purpose**: Công cụ xem trước **khuôn bế** (dieline) thuần SVG: chọn kiểu, nhập mm, zoom,
 tải SVG / In-PDF. Độc lập với luồng tư vấn.
 
-**Route**: `/dieline-lab` · metadata title `Xem trước khuôn bế (Dieline) — AI Carton Packaging`
+**Route**: `/dieline-lab` · metadata title `Xem trước khuôn bế (Dieline) — ThinhLoi Packaging`
 **Code**: `src/app/(public)/dieline-lab/page.tsx` → `src/features/dieline/DielinePreview.tsx`
 (engine: `src/lib/dieline/` — `build`, `render`, `toSVG`, `printPlacements`)
 **Layout**: L1
@@ -694,7 +694,7 @@ Hành vi khác biệt so với bản cũ: màn kết quả tư vấn không còn
 │  (không navbar, không footer — layout (guest) là passthrough) │
 │                                                               │
 │         ┌ card max-w-md, căn giữa ──────────────┐             │
-│         │  AI Carton                            │             │
+│         │  ThinhLoi Packaging                            │             │
 │         │  H1 "Đăng nhập"                        │            │
 │         │  Email      [you@example.com]          │            │
 │         │  Mật khẩu   [••••••]  (mắt)            │            │
@@ -1178,7 +1178,7 @@ Bốn layout, đối chiếu `src/app/*/layout.tsx`:
 | L4 | `src/app/(guest)/layout.tsx` | `return <>{children}</>` — thuần passthrough |
 
 Root `src/app/layout.tsx`: font `Inter`, `<html lang="vi">`, metadata title
-`AI Carton Packaging — Giải pháp đóng gói thông minh`. ⚠️ Không có `error.tsx` /
+`ThinhLoi Packaging — Giải pháp đóng gói thông minh`. ⚠️ Không có `error.tsx` /
 `not-found.tsx` global nào trong `src/app/`.
 
 ### L1. Public Layout ✅
@@ -1186,7 +1186,7 @@ Root `src/app/layout.tsx`: font `Inter`, `<html lang="vi">`, metadata title
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │ NAVBAR sticky h-16 bg-white/80 backdrop-blur-md                │
-│  [AI Carton] Trang chủ  Tư vấn  Về chúng tôi  Bảng giá         │
+│  [ThinhLoi Packaging] Trang chủ  Tư vấn  Về chúng tôi  Bảng giá         │
 │                        (login?  [Dashboard]                    │
 │                                 : [Đăng nhập][Đăng ký])        │
 ├────────────────────────────────────────────────────────────────┤
@@ -1197,7 +1197,7 @@ Root `src/app/layout.tsx`: font `Inter`, `<html lang="vi">`, metadata title
 │  Công ty: Về chúng tôi · Liên hệ                               │
 │  Hỗ trợ:  Câu hỏi thường gặp ⚠️(/#faq chết) ·                   │
 │           Điều khoản sử dụng ⚠️(href="#")                       │
-│  © {year} AI Carton Packaging. All rights reserved.            │
+│  © {year} ThinhLoi Packaging. All rights reserved.            │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1263,13 +1263,13 @@ Middleware: đã đăng nhập mà vào `/login` hoặc `/register` → redirect
 ## UNIVERSAL COMPONENTS
 
 ### Navbar — `src/components/layout/navbar.tsx` ✅
-`'use client'`. Sticky `h-16`, backdrop blur, brand `AI Carton` → `/`. 4 link desktop +
+`'use client'`. Sticky `h-16`, backdrop blur, brand `ThinhLoi Packaging` → `/`. 4 link desktop +
 khối auth (`Dashboard` nếu có session, ngược lại `Đăng nhập` + `Đăng ký`). Prop `hideAuth`
 (L2/L3) ẩn khối auth desktop. Mobile: hamburger tự render lại cả nav lẫn auth.
 ⚠️ `aria-label` hamburger là tiếng Anh (`Open menu` / `Close menu`).
 
 ### Footer — `src/components/layout/footer.tsx` ✅
-3 nhóm `Dịch vụ` / `Công ty` / `Hỗ trợ` + copyright `© {new Date().getFullYear()} AI Carton
+3 nhóm `Dịch vụ` / `Công ty` / `Hỗ trợ` + copyright `© {new Date().getFullYear()} ThinhLoi Packaging
 Packaging. All rights reserved.`
 ⚠️ **2 link chết**: `Câu hỏi thường gặp` → `/#faq` (landing không có phần tử id `faq` nào),
 `Điều khoản sử dụng` → `href="#"`.

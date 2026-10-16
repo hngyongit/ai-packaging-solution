@@ -1,4 +1,4 @@
-# Task Allocation — AI Carton Packaging Solution
+# Task Allocation — ThinhLoi Packaging Solution
 
 > 4 Fullstack Devs | Zero File Conflicts | AI + Mockup → Dev A
 >

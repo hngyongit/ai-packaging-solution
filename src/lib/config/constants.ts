@@ -1,5 +1,5 @@
-export const SITE_NAME = 'AI Carton Packaging'
-export const SITE_DESCRIPTION = 'Giải pháp đóng gói thông minh — Báo giá AI trong 30 giây'
+export const SITE_NAME = 'ThinhLoi Packaging'
+export const SITE_DESCRIPTION = 'Giải pháp đóng gói thông minh - Báo giá AI trong 30 giây'
 
 export const APP_URLS = {
   consultation: '/consultation',

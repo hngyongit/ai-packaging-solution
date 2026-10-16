@@ -1,4 +1,4 @@
-# Bắt đầu — AI Carton Packaging Solution
+# Bắt đầu — ThinhLoi Packaging Solution
 
 > Dành cho developer mới vào team. Đọc file này đầu tiên sau khi clone.
 

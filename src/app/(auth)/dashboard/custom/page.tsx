@@ -9,7 +9,7 @@ import { getActiveProductOptions } from '@/lib/data/products'
 import { CustomSpecForm } from './custom-spec-form'
 import { SavedProfileCards } from './saved-profile-cards'
 
-export const metadata: Metadata = { title: 'Thùng theo yêu cầu - AI Carton Packaging' }
+export const metadata: Metadata = { title: 'Thùng theo yêu cầu - ThinhLoi Packaging' }
 export const dynamic = 'force-dynamic'
 
 export default async function CustomPage() {

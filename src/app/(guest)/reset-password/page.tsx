@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 const resetPasswordSchema = z
   .object({
@@ -53,12 +54,9 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="relative min-h-dvh flex items-center justify-center bg-gray-50 px-4">
-      <Link
-        href="/"
-        className="absolute left-6 top-6 text-xl font-bold tracking-tight text-gray-900 transition-colors hover:text-primary"
-      >
-        AI Carton
-      </Link>
+      <div className="absolute left-6 top-6">
+        <BrandLogo compact />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Đặt mật khẩu mới</CardTitle>
