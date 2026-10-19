@@ -1,4 +1,4 @@
-# Architecture — AI Carton Packaging Solution
+# Architecture — ThinhLoi Packaging Solution
 
 > **Tech stack**: Next.js 14+ (App Router) + Supabase + TailwindCSS
 > **No separate backend server** — all logic lives in Next.js

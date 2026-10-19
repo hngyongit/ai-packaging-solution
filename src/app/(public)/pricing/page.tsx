@@ -12,7 +12,7 @@ import { CatalogTable } from '@/features/products/components/CatalogTable'
 import { PriceTierCards } from '@/features/products/components/PriceTierCards'
 
 export const metadata: Metadata = {
-  title: 'Bảng giá - AI Carton Packaging',
+  title: 'Bảng giá - ThinhLoi Packaging',
   description:
     'Bảng giá thùng carton minh bạch theo số lượng đặt hàng, chiết khấu rõ ràng cho doanh nghiệp — đơn hàng càng lớn, đơn giá càng tốt.',
 }

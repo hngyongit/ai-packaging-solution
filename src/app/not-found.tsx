@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { House, Package } from '@phosphor-icons/react'
+import { House } from '@phosphor-icons/react'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 export default function NotFound() {
   return (
@@ -12,13 +13,7 @@ export default function NotFound() {
       />
 
       <div className="relative w-full max-w-xl text-center">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xl font-bold tracking-tight text-gray-900 transition-colors hover:text-blue-600"
-        >
-          <Package className="h-6 w-6 text-blue-600" weight="duotone" />
-          AI Carton
-        </Link>
+        <BrandLogo />
 
         <div className="mx-auto mt-16 max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm sm:p-12">
           <h1 className="mt-5 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">

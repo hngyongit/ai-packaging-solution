@@ -8,7 +8,7 @@ import { FactorySection } from './components/FactorySection'
 import { ExpertiseSection } from './components/ExpertiseSection'
 
 export const metadata: Metadata = {
-  title: 'Về chúng tôi - AI Carton Packaging',
+  title: 'Về chúng tôi - ThinhLoi Packaging',
   description:
     'Nền tảng ứng dụng AI giúp doanh nghiệp lựa chọn giải pháp carton phù hợp, nhận báo giá nhanh hơn và kết nối trực tiếp với nhà máy sản xuất.',
 }

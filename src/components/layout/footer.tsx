@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { ChatCircleText, FacebookLogo, Phone } from '@phosphor-icons/react/dist/ssr'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 const footerLinks = [
   {
@@ -25,20 +27,29 @@ const footerLinks = [
   },
 ]
 
+const contactLinks = [
+  {
+    label: 'Facebook',
+    href: 'https://www.facebook.com/profile.php?id=61584385318993',
+    icon: FacebookLogo,
+  },
+  { label: '0968373066', href: 'tel:0968373066', icon: Phone },
+  {
+    label: 'Zalo: 0968373066',
+    href: 'https://zalo.me/0968373066',
+    icon: ChatCircleText,
+  },
+]
+
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
-            <Link
-              href="/"
-              className="text-xl font-bold tracking-tight text-gray-900"
-            >
-              AI Carton
-            </Link>
+            <BrandLogo compact />
             <p className="mt-2 text-sm text-gray-500 max-w-[30ch]">
-              Giải pháp đóng gói thông minh — bao bì carton theo yêu cầu với
+              Giải pháp đóng gói thông minh. Bao bì carton theo yêu cầu với
               báo giá AI trong 30 giây.
             </p>
           </div>
@@ -61,9 +72,32 @@ export function Footer() {
               </ul>
             </div>
           ))}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Liên hệ</h3>
+            <ul className="mt-3 space-y-2">
+              {contactLinks.map((link) => {
+                const Icon = link.icon
+
+                return (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      target={link.href.startsWith('http') ? '_blank' : undefined}
+                      rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
+                      aria-label={link.label}
+                      className="inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{link.label}</span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </div>
         <div className="mt-8 border-t border-gray-200 pt-6 text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} AI Carton Packaging. All rights
+          &copy; {new Date().getFullYear()} ThinhLoi Packaging. All rights
           reserved.
         </div>
       </div>

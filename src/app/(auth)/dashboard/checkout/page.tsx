@@ -7,7 +7,7 @@ import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 import { CheckoutForm } from './checkout-form'
 
-export const metadata: Metadata = { title: 'Thanh toán - AI Carton Packaging' }
+export const metadata: Metadata = { title: 'Thanh toán - ThinhLoi Packaging' }
 export const dynamic = 'force-dynamic'
 
 export default async function CheckoutPage({

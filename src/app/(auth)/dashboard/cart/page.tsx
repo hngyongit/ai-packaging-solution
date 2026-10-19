@@ -6,7 +6,7 @@ import { getAuthenticatedProfile } from '@/lib/data/profile'
 
 import { CartView } from './cart-view'
 
-export const metadata: Metadata = { title: 'Giỏ hàng - AI Carton Packaging' }
+export const metadata: Metadata = { title: 'Giỏ hàng - ThinhLoi Packaging' }
 export const dynamic = 'force-dynamic'
 
 export default async function CartPage() {

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { DielinePreview } from '@/features/dieline/DielinePreview'
 
 export const metadata: Metadata = {
-  title: 'Xem trước khuôn bế (Dieline) — AI Carton Packaging',
+  title: 'Xem trước khuôn bế (Dieline) - ThinhLoi Packaging',
   description:
     'Nhập kích thước D × C × R (mm), chọn kiểu thùng và xem ngay bản khuôn bế trải phẳng — phóng to theo tỉ lệ thật, tải SVG hoặc in đúng khổ.',
 }

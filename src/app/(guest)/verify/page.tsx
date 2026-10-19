@@ -8,6 +8,7 @@ import { Envelope } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { BrandLogo } from '@/components/layout/brand-logo'
 
 // Xác minh email bằng OTP tự gửi qua Gmail (không dùng Supabase Confirm email).
 // Luồng: /api/auth/verify/send → nhập 6 số → /api/auth/verify → /dashboard.
@@ -101,9 +102,7 @@ export default function VerifyPage() {
     <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Link href="/" className="text-xl font-bold tracking-tight text-gray-900">
-            AI Carton
-          </Link>
+          <BrandLogo compact />
           <CardTitle className="mt-4 text-xl">Xác minh email</CardTitle>
         </CardHeader>
         <CardContent>

@@ -45,7 +45,7 @@ const ORDER_MAIL_COPY: Partial<Record<OrderStatus, { heading: string; intro: str
   },
   delivered: {
     heading: 'Đơn hàng đã được giao',
-    intro: 'Đơn của bạn đã được giao. Cảm ơn bạn đã tin dùng AI Carton.',
+    intro: 'Đơn của bạn đã được giao. Cảm ơn bạn đã tin dùng ThinhLoi Packaging.',
   },
   cancelled: {
     heading: 'Đơn hàng đã được hủy',

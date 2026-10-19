@@ -21,7 +21,7 @@ export function getMailTransporter(): Transporter {
 }
 
 export function getMailFrom() {
-  return `"AI Carton" <${process.env.GMAIL_ADDRESS}>`
+  return `"ThinhLoi Packaging" <${process.env.GMAIL_ADDRESS}>`
 }
 
 export function getSiteUrl() {
@@ -32,7 +32,7 @@ export function getSiteUrl() {
 export function mailLayout(bodyHtml: string) {
   return `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="margin:0 0 16px">AI Carton</h2>
+      <h2 style="margin:0 0 16px">ThinhLoi Packaging</h2>
       ${bodyHtml}
     </div>`
 }

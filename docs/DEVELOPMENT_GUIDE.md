@@ -1,4 +1,4 @@
-# Development Guide — AI Carton Packaging Solution
+# Development Guide — ThinhLoi Packaging Solution
 
 > **EXE201 Project** — Nền tảng AI tư vấn, báo giá, chăm sóc khách hàng và hỗ trợ sản xuất bao bì carton
 

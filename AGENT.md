@@ -1,4 +1,4 @@
-# AGENT.md — AI Carton Packaging Solution
+# AGENT.md — ThinhLoi Packaging Solution
 
 > This file is read by AI coding agents at the start of every session.
 > Follow these instructions when generating, reviewing, or modifying code.
@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-**EXE201** — AI Carton Packaging Solution Platform.
+**EXE201** — ThinhLoi Packaging Solution Platform.
 A web app where customers input product specs → AI recommends box type/size/material → place order → staff confirms price → factory produces.
 
 **Stack**: Next.js 14+ (App Router) + Supabase (DB, Auth) + TailwindCSS + ai-box (OpenAI-compatible) + Cloudinary (image storage).

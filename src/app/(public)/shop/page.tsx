@@ -6,7 +6,7 @@ import { getStockedProducts } from '@/lib/data/products'
 import { ProductCard } from './product-card'
 
 export const metadata: Metadata = {
-  title: 'Thùng carton có sẵn - AI Carton Packaging',
+  title: 'Thùng carton có sẵn - ThinhLoi Packaging',
   description:
     'Thùng carton tiêu chuẩn có sẵn trong kho, số lượng lớn, giao nhanh. Thêm vào giỏ và đặt hàng trong vài phút.',
 }

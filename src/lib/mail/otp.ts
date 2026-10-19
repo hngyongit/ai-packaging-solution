@@ -26,7 +26,7 @@ export async function sendOtpEmail(to: string, code: string) {
   await getMailTransporter().sendMail({
     from: getMailFrom(),
     to,
-    subject: 'Mã xác minh tài khoản AI Carton',
+    subject: 'Mã xác minh tài khoản ThinhLoi Packaging',
     html: mailLayout(`
       <p>Bạn vừa đăng ký tài khoản tại <a href="${site}">${site}</a>. Nhập mã này để kích hoạt:</p>
       <p style="font-size:32px;letter-spacing:8px;font-weight:bold;margin:16px 0;text-align:center">${code}</p>
