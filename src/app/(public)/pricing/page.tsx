@@ -10,6 +10,7 @@ import {
 import { getCatalogProducts } from '@/lib/data/products'
 import { CatalogTable } from '@/features/products/components/CatalogTable'
 import { PriceTierCards } from '@/features/products/components/PriceTierCards'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 
 export const metadata: Metadata = {
   title: 'Bảng giá - ThinhLoi Packaging',
@@ -44,6 +45,9 @@ export default async function PricingPage() {
               càng tốt. Sau khi nhận yêu cầu, nhân viên của chúng tôi sẽ xác
               nhận báo giá cuối cùng phù hợp với quy cách thực tế của bạn.
             </p>
+            <div className="mt-5 max-w-3xl">
+              <PriceEstimateNotice />
+            </div>
           </div>
         </div>
       </section>

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShoppingBag } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { claimConsultationAfterLogin, useRequireLogin } from '@/components/auth/require-login'
@@ -151,12 +153,15 @@ export function ContactForm({ consultationId, estimatedTotal }: ContactFormProps
         </div>
 
         {estimatedTotal !== undefined && estimatedTotal > 0 && (
-          <div className="rounded-md bg-white px-4 py-2 text-sm text-blue-800">
-            💰 Tổng tiền ước tính:{' '}
-            <span className="font-bold">
-              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(estimatedTotal)}
-            </span>{' '}
-            <span className="text-gray-500">(Staff sẽ xác nhận giá cuối)</span>
+          <div className="space-y-2 rounded-md bg-white p-4 text-sm text-blue-800">
+            <p>
+              Tổng tiền ước tính:{' '}
+              <span className="font-bold">
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(estimatedTotal)}
+              </span>
+            </p>
+            <PriceEstimateNotice compact />
+            <DeliveryEstimate kind="custom" compact />
           </div>
         )}
 

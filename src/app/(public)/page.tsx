@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { MagnifyingGlass, Cube, Truck } from '@phosphor-icons/react'
+import { ArrowRight, Cube, MagnifyingGlass, Package, Truck } from '@phosphor-icons/react'
 import { useEffect, useRef } from 'react'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 
 export default function HomePage() {
   const heroRef = useRef<HTMLElement>(null)
@@ -131,13 +132,74 @@ export default function HomePage() {
                   Bắt đầu tư vấn miễn phí
                 </Link>
                 <Link
-                  href="/about"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  href="/shop"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 active:scale-[0.98]"
                 >
-                  Xem sản phẩm →
+                  <Package className="mr-2 h-5 w-5" />
+                  Xem hàng có sẵn
                 </Link>
               </div>
             </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-16 md:py-20">
+          <div data-reveal className="reveal mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <h2 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
+                Bạn cần loại bao bì nào?
+              </h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
+                Chọn đúng lối mua hàng ngay từ đầu. Bạn có thể đặt nhanh thùng có sẵn hoặc nhận tư vấn cho quy cách riêng.
+              </p>
+            </div>
+            <div className="mt-10 grid items-stretch gap-6 md:grid-cols-2">
+              <article className="group flex min-h-[430px] flex-col rounded-2xl border border-emerald-200 bg-[linear-gradient(145deg,#f0fdf4_0%,#ecfdf5_100%)] p-6 shadow-[0_10px_30px_rgba(5,150,105,0.06)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-[0_18px_44px_rgba(5,150,105,0.12)] motion-reduce:transform-none motion-reduce:transition-none sm:p-8">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                    <Package className="h-6 w-6" weight="duotone" />
+                  </div>
+                  <span className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700">Giao nhanh</span>
+                </div>
+                <h3 className="mt-6 text-2xl font-semibold tracking-tight text-gray-950">Thùng carton có sẵn</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-700">
+                  Chọn mẫu tiêu chuẩn đang có kho, xem giá và thêm vào giỏ ngay. Phù hợp khi bạn cần hàng nhanh.
+                </p>
+                <div className="mt-auto pt-8">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                    <Truck className="h-5 w-5" weight="duotone" />
+                    Dự kiến giao 3-4 ngày làm việc
+                  </p>
+                  <Link href="/shop" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98] sm:w-fit">
+                    Mua hàng có sẵn <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
+              <article className="group flex min-h-[430px] flex-col rounded-2xl border border-blue-300 bg-[linear-gradient(145deg,#eff6ff_0%,#eef2ff_100%)] p-6 shadow-[0_12px_34px_rgba(37,99,235,0.09)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-blue-400 hover:shadow-[0_20px_48px_rgba(37,99,235,0.16)] motion-reduce:transform-none motion-reduce:transition-none sm:p-8">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+                    <MagnifyingGlass className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700">Thiết kế riêng</span>
+                </div>
+                <h3 className="mt-6 text-2xl font-semibold tracking-tight text-gray-950">Thùng theo yêu cầu</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-700">
+                  Nhập sản phẩm, kích thước và số lượng. AI đề xuất quy cách, giá ước tính và đội ngũ xác nhận trước khi sản xuất.
+                </p>
+                <div className="mt-4">
+                  <PriceEstimateNotice />
+                </div>
+                <div className="mt-auto pt-6">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-blue-800">
+                    <Truck className="h-5 w-5" weight="duotone" />
+                    Dự kiến giao khoảng 15 ngày
+                  </p>
+                  <Link href="/consultation" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 active:scale-[0.98] sm:w-fit">
+                    Nhận tư vấn miễn phí <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
             </div>
           </div>
         </section>
@@ -194,6 +256,7 @@ export default function HomePage() {
                     <p className="text-lg font-bold text-blue-600">
                       Từ {p.price}
                     </p>
+                    <PriceEstimateNotice compact />
                   </div>
                 </div>
               ))}

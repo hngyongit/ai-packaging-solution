@@ -1,3 +1,5 @@
+import { getStockProductImageUrl } from '@/features/products/product-image'
+
 export const ORDER_STATUS_SEQUENCE = [
   'pending',
   'staff_review',
@@ -60,6 +62,14 @@ export type OrderItem = {
   unit_price: number | string
   subtotal: number | string
   notes: string | null
+  is_custom?: boolean | null
+  product?: { image_url: string | null; category: string | null } | { image_url: string | null; category: string | null }[] | null
+}
+
+export function getStockProductImage(item: Pick<OrderItem, 'is_custom' | 'product'>) {
+  if (item.is_custom || !item.product) return null
+  const product = Array.isArray(item.product) ? item.product[0] : item.product
+  return getStockProductImageUrl(product)
 }
 
 export type OrderStatusHistory = {

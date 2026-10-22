@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
+import { StockProductThumbnail } from '@/components/order/stock-product-thumbnail'
 import { OrdersRealtimeRefresh } from '@/components/order/orders-realtime-refresh'
 import { StatusTimeline } from '@/components/ui/status-timeline'
 import {
@@ -103,13 +104,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               {order.order_items.map((item) => (
                 <div key={item.id} className="rounded-lg border border-gray-200 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 gap-4">
+                      <StockProductThumbnail item={item} />
+                      <div className="min-w-0">
                       <p className="font-medium text-foreground">{item.product_name}</p>
                       <p className="text-sm text-muted-foreground">{item.product_code}</p>
                       <p className="mt-2 text-sm text-muted-foreground">{formatDimensions(item.dimensions)}</p>
                       {item.notes ? <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p> : null}
                       <div className="mt-3">
                         <PrintPreviewStrip item={item} size="md" />
+                      </div>
                       </div>
                     </div>
                     <div className="text-left sm:text-right">

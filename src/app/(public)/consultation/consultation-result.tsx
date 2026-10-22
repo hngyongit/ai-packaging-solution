@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { CheckCircle, Lightbulb, Package, ShieldCheck } from '@phosphor-icons/react'
 
 import { buttonVariants } from '@/components/ui/button'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { type AIRecommendation } from '@/lib/ai/types'
 import { cn } from '@/lib/utils'
 
@@ -84,6 +86,10 @@ export function ConsultationResult({
                 <p className="mt-1 text-sm text-gray-600">
                   Tổng: {vnd(r.estimatedTotalMin)} - {vnd(r.estimatedTotalMax)}
                 </p>
+                <div className="mt-3 space-y-1">
+                  <PriceEstimateNotice />
+                  <DeliveryEstimate kind="custom" compact />
+                </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs font-medium text-gray-500 uppercase">Số lượng tối thiểu</p>

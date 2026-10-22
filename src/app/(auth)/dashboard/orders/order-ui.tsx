@@ -4,6 +4,7 @@ import { ArrowRight, Clock, Package, Receipt } from '@phosphor-icons/react/dist/
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrintPreviewStrip } from '@/components/order/print-preview-strip'
+import { StockProductThumbnail } from '@/components/order/stock-product-thumbnail'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -16,6 +17,7 @@ import {
   getItemSummary,
   getOrderProgress,
   getPaymentStatusLabel,
+  getStockProductImage,
   type CustomerOrder,
 } from '@/lib/data/order-shared'
 import { CancelOrderButton } from './cancel-order-button'
@@ -148,6 +150,7 @@ export function OrderCard({
   const canCancel = canCustomerCancelOrder(order.status)
   // Mockup lưu trên dòng đầu tiên (handoff từ tư vấn AI luôn là item[0]).
   const mockupItem = order.order_items[0]
+  const stockImageItems = order.order_items.filter((item) => getStockProductImage(item)).slice(0, 4)
 
   return (
     <Card className="rounded-lg">
@@ -174,6 +177,12 @@ export function OrderCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {stockImageItems.length > 0 ? (
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+            {stockImageItems.map((item) => <StockProductThumbnail key={item.id} item={item} size="sm" />)}
+            <span className="ml-1 text-xs text-slate-500">Hình ảnh sản phẩm trong kho</span>
+          </div>
+        ) : null}
         {mockupItem ? (
           <div className="border-b border-gray-100 pb-3">
             <PrintPreviewStrip item={mockupItem} />

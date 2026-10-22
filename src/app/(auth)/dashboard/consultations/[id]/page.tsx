@@ -5,6 +5,7 @@ import { ArrowLeft, ChatCircle, Spinner } from '@phosphor-icons/react/dist/ssr'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConsultationStatusBadge } from '@/components/ui/consultation-status-badge'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { formatDateTime, formatCurrency } from '@/lib/data/order-shared'
 import { getCurrentProfile } from '@/lib/data/orders'
 import { listCustomerConsultations, type CustomerConsultationRow } from '@/lib/data/customer-consultations'
@@ -124,6 +125,7 @@ export default async function CustomerConsultationDetailPage({ params }: { param
                     {formatCurrency(r.estimatedUnitPriceMin)} - {formatCurrency(r.estimatedUnitPriceMax)}
                     <span className="text-sm font-medium text-blue-600"> / thùng</span>
                   </p>
+                  <div className="mt-2"><PriceEstimateNotice compact /></div>
                   <p className="mt-0.5 text-sm text-blue-600">
                     Tổng: {formatCurrency(r.estimatedTotalMin)} - {formatCurrency(r.estimatedTotalMax)}
                   </p>

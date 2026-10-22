@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle } from '@phosphor-icons/react'
 
 import { Button, buttonVariants } from '@/components/ui/button'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type CartLine, type StockIssue } from '@/lib/data/cart'
 import { formatCurrency } from '@/lib/utils'
@@ -115,6 +117,8 @@ export function CheckoutFormShell({
   total: number
   submitting: boolean
 }) {
+  const includesCustomOrder = lines.some((line) => line.kind === 'custom')
+
   return (
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]" noValidate>
       <div className="space-y-6">
@@ -163,9 +167,10 @@ export function CheckoutFormShell({
               <span className="text-sm text-gray-600">Tạm tính</span>
               <span className="text-base font-semibold text-gray-950">{formatCurrency(total)}</span>
             </div>
-            <p className="text-xs text-gray-500">
-              Giá chưa gồm VAT. Nhân viên xác nhận đơn giá cuối cùng trước khi sản xuất.
-            </p>
+            <div className="space-y-2">
+              {includesCustomOrder && <PriceEstimateNotice compact />}
+              <DeliveryEstimate kind={includesCustomOrder ? 'custom' : 'stock'} compact />
+            </div>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Đang gửi...' : 'Đặt hàng'}
             </Button>

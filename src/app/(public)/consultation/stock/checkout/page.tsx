@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
 import { formatCurrency } from '@/lib/utils'
 
 const schema = z.object({
@@ -175,6 +176,9 @@ function StockCheckoutContent() {
                 </dd>
               </div>
             </dl>
+            <div className="mt-4 space-y-2">
+              <DeliveryEstimate kind="stock" />
+            </div>
           </CardContent>
         </Card>
 

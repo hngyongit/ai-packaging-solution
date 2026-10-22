@@ -71,7 +71,12 @@ const ORDER_LIST_SELECT = `
     quantity,
     unit_price,
     subtotal,
-    notes
+    notes,
+    is_custom,
+    product:products!order_items_product_id_fkey (
+      image_url,
+      category
+    )
   )
 `
 

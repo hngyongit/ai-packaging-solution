@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import type { AIRecommendation } from '@/lib/ai/types'
 import type { BoxStyleRecord } from '@/lib/data/boxes'
 
@@ -77,6 +78,9 @@ export function ConsultationForm({ boxStyles }: { boxStyles: BoxStyleRecord[] })
           <p className="mt-1 text-sm text-gray-500">
             Nhập thông số sản phẩm, AI đề xuất thùng carton phù hợp ngay tại đây.
           </p>
+          <div className="mt-4 max-w-3xl">
+            <PriceEstimateNotice />
+          </div>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">

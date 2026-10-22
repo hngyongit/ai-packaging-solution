@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { NavigationDataRefresh } from '@/components/navigation/navigation-data-refresh'
 
 const inter = Inter({subsets:['latin','latin-ext'],variable:'--font-sans'});
 
@@ -20,7 +19,6 @@ export default function RootLayout({
   return (
     <html lang="vi" className={cn("font-sans", inter.variable)}>
       <body className="min-h-screen bg-white text-gray-900 antialiased">
-        <NavigationDataRefresh />
         {children}
       </body>
     </html>
