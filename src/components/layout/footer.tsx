@@ -74,7 +74,7 @@ export function Footer() {
           ))}
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Liên hệ</h3>
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 space-y-1">
               {contactLinks.map((link) => {
                 const Icon = link.icon
 
@@ -85,10 +85,12 @@ export function Footer() {
                       target={link.href.startsWith('http') ? '_blank' : undefined}
                       rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
                       aria-label={link.label}
-                      className="inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
+                      className="group -ml-2 inline-flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-gray-600 transition-colors hover:bg-white hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                     >
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span>{link.label}</span>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-700">
+                        <Icon className="h-[17px] w-[17px]" aria-hidden="true" weight="regular" />
+                      </span>
+                      <span className="whitespace-nowrap">{link.label}</span>
                     </Link>
                   </li>
                 )

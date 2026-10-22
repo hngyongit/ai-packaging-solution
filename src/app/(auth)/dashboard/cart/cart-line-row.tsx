@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { type CartLine } from '@/lib/data/cart'
 import { formatCurrency } from '@/lib/utils'
 import { formatDimensions, formatLayers } from '@/features/products/utils'
+import { getStockProductImageUrl } from '@/features/products/product-image'
 
 import { CustomEditTrigger } from './custom-line-editor'
 
@@ -48,6 +49,7 @@ export function CartLineRow({
   const stock = line.product?.stockQuantity ?? null
   const over = lineOverStock(line)
   const spec = line.custom
+  const imageUrl = isCustom ? null : getStockProductImageUrl(line.product)
 
   return (
     <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:gap-4">
@@ -59,6 +61,12 @@ export function CartLineRow({
         disabled={busy}
         onChange={onToggle}
       />
+      {imageUrl ? (
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 sm:h-24 sm:w-24">
+          {/* eslint-disable-next-line @next/next/no-img-element -- product images are managed in Supabase Storage */}
+          <img src={imageUrl} alt={lineName(line)} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      ) : null}
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

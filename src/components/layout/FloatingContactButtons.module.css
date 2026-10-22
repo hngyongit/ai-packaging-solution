@@ -1,0 +1,175 @@
+.root {
+  --zalo-color: #0877ff;
+  --messenger-color: #0084ff;
+  --phone-color: #0f9d58;
+  --button-size: 56px;
+  --outer-ring-size: 68px;
+  --button-gap: 22px;
+  --shadow: 0 5px 18px rgb(0 0 0 / 14%);
+
+  position: fixed;
+  right: 24px;
+  bottom: 30px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--button-gap);
+}
+
+.button {
+  position: relative;
+  display: grid;
+  width: var(--outer-ring-size);
+  height: var(--outer-ring-size);
+  place-items: center;
+  border: 1px solid var(--ring-border);
+  border-radius: 9999px;
+  background: var(--ring-color);
+  isolation: isolate;
+}
+
+.button::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--pulse-color);
+  content: '';
+  animation: floating-contact-pulse 2.6s ease-out infinite;
+}
+
+.core {
+  display: grid;
+  width: var(--button-size);
+  height: var(--button-size);
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: var(--button-color);
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out, filter 180ms ease-out;
+}
+
+.button:hover .core {
+  transform: scale(1.06);
+  box-shadow: 0 9px 26px rgb(0 0 0 / 22%);
+  filter: brightness(0.98);
+}
+
+.button:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 3px;
+}
+
+.button:active .core {
+  transform: scale(0.98);
+}
+
+.tooltip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  width: max-content;
+  border-radius: 6px;
+  background: rgb(17 24 39);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0;
+  padding: 9px 11px;
+  pointer-events: none;
+  transform: translate(6px, -50%);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+}
+
+.button:hover .tooltip,
+.button:focus-visible .tooltip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.zalo {
+  --button-color: var(--zalo-color);
+  --ring-color: rgb(8 119 255 / 9%);
+  --ring-border: rgb(8 119 255 / 16%);
+  --pulse-color: rgb(8 119 255 / 18%);
+}
+
+.phone {
+  --button-color: var(--phone-color);
+  --ring-color: rgb(15 157 88 / 9%);
+  --ring-border: rgb(15 157 88 / 16%);
+  --pulse-color: rgb(15 157 88 / 18%);
+}
+
+.messenger {
+  --button-color: var(--messenger-color);
+  --ring-color: rgb(0 132 255 / 9%);
+  --ring-border: rgb(0 132 255 / 16%);
+  --pulse-color: rgb(0 132 255 / 18%);
+}
+
+.zaloLogo {
+  width: 28px;
+  height: 28px;
+}
+
+.phoneIcon {
+  width: 26px;
+  height: 26px;
+  color: white;
+}
+
+.messengerIcon {
+  width: 27px;
+  height: 27px;
+  color: white;
+}
+
+@keyframes floating-contact-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    --button-size: 50px;
+    --outer-ring-size: 60px;
+
+    right: 16px;
+  }
+
+  .zaloLogo {
+    width: 26px;
+    height: 26px;
+  }
+
+  .phoneIcon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .messengerIcon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button::before {
+    animation: none;
+    opacity: 0;
+  }
+
+  .core {
+    transition: none;
+  }
+}

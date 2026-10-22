@@ -30,9 +30,9 @@ export default async function AuthLayout({
   return (
     <>
       <Navbar hideAuth />
-      <div className="flex h-[calc(100dvh-4rem)]">
+      <div className="flex h-[calc(100dvh-4rem)] flex-col bg-slate-50/60 md:flex-row">
         <DashboardNav />
-        <main className="min-w-0 flex-1 overflow-auto p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </>
   )

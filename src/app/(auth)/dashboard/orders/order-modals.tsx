@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { PrintPreviewStrip } from "@/components/order/print-preview-strip"
+import { StockProductThumbnail } from "@/components/order/stock-product-thumbnail"
 import { PayNowButton } from "@/components/checkout/pay-now-button"
 import { buttonVariants } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
@@ -109,13 +110,16 @@ function OrderQuickViewModal({
           <div className="space-y-2">
             {order.order_items.map((item) => (
               <div key={item.id} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <StockProductThumbnail item={item} size="sm" />
+                    <div className="min-w-0">
                     <p className="font-medium text-gray-950">{item.product_name}</p>
                     <p className="text-xs text-gray-500">{item.product_code}</p>
                     <p className="mt-1 text-sm text-gray-600">{formatDimensions(item.dimensions)}</p>
                     <div className="mt-2">
                       <PrintPreviewStrip item={item} />
+                    </div>
                     </div>
                   </div>
                   <div className="shrink-0 text-left sm:text-right">

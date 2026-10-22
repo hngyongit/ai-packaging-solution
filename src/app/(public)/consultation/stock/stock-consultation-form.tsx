@@ -8,11 +8,10 @@ import { MagnifyingGlass, Spinner } from '@phosphor-icons/react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type StockMatch } from '@/lib/ai/types'
 
-import { Field, InlineError, RadioGroup, Section } from '@/components/consultation/fields'
+import { Field, InlineError, Section } from '@/components/consultation/fields'
 import { consultationToInput, consultationSchema, type ConsultationFormValues } from '../consultation-schema'
 import { StockResultPanel, type StockResult } from './stock-result-panel'
 
@@ -26,8 +25,6 @@ export function StockConsultationForm() {
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ConsultationFormValues>({
     resolver: zodResolver(consultationSchema),
@@ -46,8 +43,6 @@ export function StockConsultationForm() {
     },
   })
 
-  const hasPrinting = watch('hasPrinting')
-
   async function onSubmit(values: ConsultationFormValues) {
     setResult({ status: 'loading' })
     try {
@@ -55,7 +50,7 @@ export function StockConsultationForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Kho bán mẫu dựng sẵn → không gửi boxStyle (AI custom mới cần).
-        body: JSON.stringify({ ...consultationToInput(values), boxStyle: undefined }),
+        body: JSON.stringify({ ...consultationToInput(values), boxStyle: undefined, hasPrinting: false }),
       })
       const data = await response.json().catch(() => null)
       if (!response.ok) throw new Error(data?.error ?? 'Không thể tìm mẫu phù hợp')
@@ -116,25 +111,6 @@ export function StockConsultationForm() {
                   <Field label="Số lượng thùng" required error={errors.desiredQuantity?.message}>
                     <Input placeholder="VD: 1000" aria-invalid={Boolean(errors.desiredQuantity)} {...register('desiredQuantity')} />
                   </Field>
-                </div>
-              </Section>
-
-              <Section title="In ấn">
-                <div>
-                  <Label className="mb-2 text-sm font-medium text-gray-700">Có cần in lên thùng?</Label>
-                  <RadioGroup
-                    value={hasPrinting}
-                    onChange={(next) => setValue('hasPrinting', next === 'true')}
-                    options={[
-                      { value: 'true', label: 'Có' },
-                      { value: 'false', label: 'Không' },
-                    ]}
-                  />
-                  {hasPrinting && (
-                    <p className="mt-2 text-sm text-gray-500">
-                      Mẫu thùng trơn trong kho; in ấn sẽ báo giá thêm khi bạn gửi đơn.
-                    </p>
-                  )}
                 </div>
               </Section>
 

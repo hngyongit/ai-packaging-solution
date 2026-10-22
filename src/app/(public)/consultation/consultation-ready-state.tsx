@@ -7,6 +7,7 @@ import { CustomCartActions } from '@/components/cart/custom-cart-actions'
 import type { AIRecommendation } from '@/lib/ai/types'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 
 import { Alternatives } from './consultation-alternatives'
 import { SaveAsTemplateButton } from './save-as-template-button'
@@ -67,6 +68,7 @@ export function ReadyState({ result }: { result: ReadyResult }) {
           Tổng: {vnd(r.estimatedTotalMin)} - {vnd(r.estimatedTotalMax)}
         </p>
       </div>
+      <PriceEstimateNotice />
 
       <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
         <p className="flex items-center gap-1 font-medium text-gray-700">

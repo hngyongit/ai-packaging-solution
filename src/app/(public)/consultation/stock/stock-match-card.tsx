@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
 import { useAddToCart } from '@/components/cart/use-add-to-cart'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
 import { formatDimensions, formatLayers } from '@/features/products/utils'
 import { type StockMatch } from '@/lib/ai/types'
 
@@ -65,6 +66,10 @@ export function StockMatchCard({ match, rank }: { match: StockMatch; rank: numbe
           <dd className="mt-0.5 font-medium text-gray-900">{formatCurrency(match.unitPrice)}</dd>
         </div>
       </dl>
+
+      <div className="mt-3 space-y-1">
+        <DeliveryEstimate kind="stock" compact />
+      </div>
 
       <div className="mt-4 flex items-center gap-2">
         <label className="sr-only" htmlFor={`stock-qty-${match.productId}`}>

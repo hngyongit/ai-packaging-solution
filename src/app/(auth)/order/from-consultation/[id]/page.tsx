@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { formatCurrency } from '@/lib/data/order-shared'
 
 type Params = { id: string }
@@ -162,6 +163,7 @@ export default function CreateOrderFromConsultationPage({ params }: { params: Pa
                 <p className="font-medium text-blue-600">
                   {formatCurrency(r.estimatedUnitPriceMin)} - {formatCurrency(r.estimatedUnitPriceMax)} / thùng
                 </p>
+                <div className="mt-2"><PriceEstimateNotice compact /></div>
               </div>
             )}
           </div>

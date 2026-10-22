@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency } from '@/lib/utils'
 import { type StockMatch } from '@/lib/ai/types'
+import { DeliveryEstimate } from '@/components/commerce/delivery-estimate'
 
 /**
  * Trang checkout cho stock consultation — customer điền thông tin liên hệ
@@ -285,6 +286,9 @@ export default function StockCheckoutPage() {
                     <p className="mt-1 text-xs text-gray-500">
                       * Nhân viên sẽ xác nhận giá cuối cùng trong vòng 24h
                     </p>
+                    <div className="mt-3 space-y-2">
+                      <DeliveryEstimate kind="stock" compact />
+                    </div>
                   </div>
                 </div>
               ) : (

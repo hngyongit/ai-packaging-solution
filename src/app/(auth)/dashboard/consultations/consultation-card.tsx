@@ -5,6 +5,7 @@ import { ShoppingCart } from '@phosphor-icons/react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { ConsultationStatusBadge } from '@/components/ui/consultation-status-badge'
+import { PriceEstimateNotice } from '@/components/commerce/price-estimate-notice'
 import { formatDateTime, formatCurrency } from '@/lib/data/order-shared'
 import type { CustomerConsultationRow } from '@/lib/data/customer-consultations'
 import { cn } from '@/lib/utils'
@@ -46,14 +47,17 @@ export function ConsultationCard({ c }: Props) {
             </p>
           )}
           {priceMin > 0 && (
-            <p className="mt-1 text-sm font-semibold text-blue-600">
-              Giá ước tính: {formatCurrency(priceMin)} - {formatCurrency(priceMax)} / thùng
-              {qty > 0 && (
-                <span className="ml-1 text-gray-500 font-normal">
-                  (~{formatCurrency((priceMin + priceMax) / 2 * qty)})
-                </span>
-              )}
-            </p>
+            <div className="mt-1 space-y-2">
+              <p className="text-sm font-semibold text-blue-600">
+                Giá ước tính: {formatCurrency(priceMin)} - {formatCurrency(priceMax)} / thùng
+                {qty > 0 && (
+                  <span className="ml-1 text-gray-500 font-normal">
+                    (~{formatCurrency((priceMin + priceMax) / 2 * qty)})
+                  </span>
+                )}
+              </p>
+              <PriceEstimateNotice compact />
+            </div>
           )}
           <p className="mt-1 text-xs text-gray-400">
             {formatDateTime(c.created_at)}
