@@ -168,7 +168,7 @@ export function CheckoutFormShell({
               <span className="text-base font-semibold text-gray-950">{formatCurrency(total)}</span>
             </div>
             <div className="space-y-2">
-              {includesCustomOrder && <PriceEstimateNotice compact />}
+              <PriceEstimateNotice total={total} />
               <DeliveryEstimate kind={includesCustomOrder ? 'custom' : 'stock'} compact />
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
